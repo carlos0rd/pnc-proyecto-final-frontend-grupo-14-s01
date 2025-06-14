@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import LoginImage from "../../assets/login-img.png"
 
 const Login = () => {
   const [email, setEmail] = useState("")
@@ -108,7 +109,7 @@ const Login = () => {
     alignItems: "center",
     gap: "1.5rem",
     marginBottom: "2.5rem",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
   }
 
   const titleStyle = {
@@ -119,19 +120,19 @@ const Login = () => {
   }
 
   const logoContainerStyle = {
-    backgroundColor: "#f3f4f6",
     borderRadius: "50%",
-    padding: "0.5rem",
+    //padding: "0.5rem",
     width: "100px",
     height: "100px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 
@@ -227,8 +228,7 @@ const Login = () => {
   const rightSectionStyle = {
     width: "50%",
     position: "relative",
-    backgroundImage:
-      "url('https://st3.depositphotos.com/1003434/18849/i/450/depositphotos_188490057-stock-photo-working-man.jpg')",
+    backgroundImage:`url(${LoginImage})`, // Asegúrate de que la ruta sea correcta
     backgroundSize: "cover",
     backgroundPosition: "center",
     clipPath: "polygon(25% 0, 100% 0%, 100% 100%, 0% 100%)",

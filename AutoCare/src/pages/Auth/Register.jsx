@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import RegImage from "../../assets/register-img.png" 
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -89,8 +90,7 @@ const Register = () => {
   const imageSectionStyle = {
     width: "50%",
     position: "relative",
-    backgroundImage:
-      "url('https://img.freepik.com/foto-gratis/concepto-detalle-automovil-hombre-mascara-facial-pulidor-orbital-taller-reparaciones-puliendo-techo-automovil-todoterreno-naranja_627829-12612.jpg')",
+    backgroundImage:`url(${RegImage})`,
     backgroundSize: "cover",
     backgroundPosition: "center",
     clipPath: "polygon(25% 0, 100% 0%, 100% 100%, 0% 100%)",
