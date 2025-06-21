@@ -406,7 +406,7 @@ const DashboardCliente = () => {
       {/* Main Content */}
       <div style={mainContentStyle}>
         <div style={headerStyle}>
-          <h1 style={nameStyle}>{userData.name.toUpperCase()}</h1>
+        <h1 style={nameStyle}>{userData?.name?.toUpperCase() || "Usuario"}</h1>
           <h2 style={subtitleStyle}>Menú Perfil</h2>
         </div>
 

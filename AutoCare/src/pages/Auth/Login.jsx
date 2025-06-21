@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import LoginImage from "../../assets/login-img.png"
+import { jwtDecode } from "jwt-decode";
+
 
 const Login = () => {
   const [email, setEmail] = useState("")
@@ -41,36 +43,57 @@ const Login = () => {
     },
   ]
 
-  const handleLogin = (e) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
 
-    // Simular delay de autenticación
-    setTimeout(() => {
-      // Verificar credenciales
-      const user = validCredentials.find((cred) => cred.email === email && cred.password === password)
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+  
+    try {
+      /* 1️⃣  LOGIN ──────────────────────────────────────── */
+      const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, contrasena: password })
+      });
+  
+      const { token, error } = await loginRes.json();
+      if (!loginRes.ok) throw new Error(error || "Credenciales incorrectas");
+  
+      /* 1. login y token obtenidos … */
+localStorage.setItem("token", token);
+localStorage.setItem("isAuthenticated", "true");
 
-      if (user) {
-        // Guardar datos del usuario en localStorage
-        localStorage.setItem("currentUser", JSON.stringify(user))
-        localStorage.setItem("isAuthenticated", "true")
+/* 2. trae el perfil completo */
+const meRes = await fetch(
+  `${import.meta.env.VITE_API_URL}/usuarios/me`,
+  { headers: { Authorization: `Bearer ${token}` } }
+);
+if (!meRes.ok) throw new Error("No se pudo obtener el perfil");
+const perfil = await meRes.json();
 
-        // Redirigir según el rol del usuario
-        if (user.role === "admin" || user.email.includes("admin")) {
-          navigate("/dashboard-admin")
-        } else if (user.role === "mecanico" || user.email.includes("mecanico")) {
-          navigate("/dashboard-mecanico")
-        } else {
-          navigate("/dashboard-cliente")
-        }
-      } else {
-        setError("Email o contraseña incorrectos")
-      }
+/* 3. guarda currentUser con todos los campos */
+localStorage.setItem("currentUser", JSON.stringify({
+  name:   perfil.nombre_completo,
+  email:  perfil.email,
+  phone:  perfil.telefono  ?? "",
+  mobile: perfil.celular   ?? "",
+  rol_id: perfil.rol_id
+}));
+  
+      /* 5️⃣  REDIRIGE SEGÚN ROL ───────────────────────── */
+      if (perfil.rol_id === 1)      navigate("/dashboard-cliente");
+      else if (perfil.rol_id === 2) navigate("/dashboard-mecanico");
+      else if (perfil.rol_id === 3) navigate("/dashboard-admin");
+      else                          navigate("/");
+  
+    } catch (err) {
+      setError(err.message || "Error de conexión con el servidor");
+    }
+  
+    setLoading(false);
+  };
 
-      setLoading(false)
-    }, 1000)
-  }
 
   // Estilos inline para asegurar que funcione sin Tailwind
   const containerStyle = {
@@ -275,7 +298,7 @@ const Login = () => {
               <br />📧 admin@autocare.com | 🔑 admin123 (Admin)
               <br />📧 mecanico@autocare.com | 🔑 meca123 (Mecánico)
             </div>
-
+                
             <input
               type="email"
               placeholder="Email"
