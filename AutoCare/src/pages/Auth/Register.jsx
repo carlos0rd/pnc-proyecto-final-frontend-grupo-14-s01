@@ -17,10 +17,47 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    console.log(formData)
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const payload = {
+    nombre_completo: formData.name,
+    email: formData.email,
+    contrasena: formData.password,
+    telefono: formData.phone,
+    celular: formData.mobile
+  };
+
+  // Verificar que las contraseñas coincidan
+  if (formData.password !== formData.confirmPassword) {
+    alert("Las contraseñas no coinciden");
+    return;
   }
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (response.ok) {
+      alert("Usuario registrado exitosamente");
+    } else {
+      const mensaje = data?.message || `Error del servidor (${response.status})`;
+      alert("Error en el registro: " + mensaje);
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Error de conexión: " + error.message);
+  }
+};
+
+
 
   // Estilos inline como fallback si Tailwind no funciona
   const containerStyle = {
