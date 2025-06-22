@@ -177,7 +177,7 @@ const GestionVehiculos = () => {
     }
 
     const user = JSON.parse(currentUser)
-    if (!user.email.includes("admin")) {
+    if (user.rol_id !== 3) {
       navigate("/dashboard-cliente")
       return
     }

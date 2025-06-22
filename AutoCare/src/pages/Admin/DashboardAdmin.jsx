@@ -3,81 +3,117 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 
+/* ------------------------------------------------------------------
+   Ajusta la URL de tu backend (.env =>  VITE_API_URL=http://localhost:3001)
+------------------------------------------------------------------- */
+const API_URL = import.meta.env.VITE_API_URL
+
 const DashboardAdmin = () => {
+  /* --------------------------- state --------------------------- */
   const [activeMenu, setActiveMenu] = useState("perfil")
   const [userData, setUserData] = useState(null)
+
   const [showEditModal, setShowEditModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+
   const [editFormData, setEditFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name:   "",
+    email:  "",
+    phone:  "",
     mobile: "",
   })
   const [newPassword, setNewPassword] = useState("")
+
   const navigate = useNavigate()
 
+  /* --------------------------- auth guard --------------------------- */
   useEffect(() => {
-    // Verificar si el usuario está autenticado
     const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const currentUser = localStorage.getItem("currentUser")
+    const currentUser     = localStorage.getItem("currentUser")
 
     if (!isAuthenticated || !currentUser) {
-      // Si no está autenticado, redirigir al login
       navigate("/")
       return
     }
 
-    // Cargar datos del usuario
     const user = JSON.parse(currentUser)
 
-    // Verificar si es admin
-    if (!user.email.includes("admin")) {
-      // Si no es admin, redirigir al dashboard de cliente
+    /* ✅ Identificamos ADMIN por rol_id === 3 */
+    if (user.rol_id !== 3) {
       navigate("/dashboard-cliente")
       return
     }
 
     setUserData(user)
     setEditFormData({
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
+      name:   user.name,
+      email:  user.email,
+      phone:  user.phone,
       mobile: user.mobile,
     })
   }, [navigate])
 
+  /* --------------------------- helpers --------------------------- */
+  const authHeaders = () => ({
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+  })
+
+  /* --------------------------- eventos --------------------------- */
   const handleEditChange = (e) => {
     const { name, value } = e.target
-    setEditFormData({
-      ...editFormData,
-      [name]: value,
-    })
+    setEditFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleEditSubmit = (e) => {
+  /* ----------- PERFIL: PUT /usuarios/:id ----------- */
+  const handleEditSubmit = async (e) => {
     e.preventDefault()
 
-    // Actualizar datos del usuario
-    const updatedUser = {
-      ...userData,
-      name: editFormData.name,
-      email: editFormData.email,
-      phone: editFormData.phone,
-      mobile: editFormData.mobile,
+    if (!editFormData.name.trim() || !editFormData.email.trim()) {
+      alert("Nombre y correo son obligatorios")
+      return
     }
 
-    // Guardar en localStorage
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+    try {
+      const res = await fetch(
+        `${API_URL}/usuarios/${userData.id}`,
+        {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            nombre_completo: editFormData.name,
+            email:           editFormData.email,
+            telefono:        editFormData.phone,
+            celular:         editFormData.mobile,
+          }),
+        },
+      )
 
-    // Actualizar estado
-    setUserData(updatedUser)
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Error al actualizar")
+      }
 
-    // Cerrar modal
-    setShowEditModal(false)
+      const updatedUser = {
+        ...userData,
+        name:   editFormData.name,
+        email:  editFormData.email,
+        phone:  editFormData.phone,
+        mobile: editFormData.mobile,
+      }
+
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+      setUserData(updatedUser)
+      setShowEditModal(false)
+      alert("Perfil actualizado correctamente")
+    } catch (err) {
+      console.error(err)
+      alert("Hubo un problema al actualizar tu perfil")
+    }
   }
 
-  const handlePasswordSubmit = (e) => {
+  /* ----- CONTRASEÑA: PUT /usuarios/cambiar-contrasena/:id ----- */
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault()
 
     if (newPassword.length < 6) {
@@ -85,37 +121,44 @@ const DashboardAdmin = () => {
       return
     }
 
-    // Actualizar contraseña del usuario
-    const updatedUser = {
-      ...userData,
-      password: newPassword,
+    try {
+      const res = await fetch(
+        `${API_URL}/usuarios/cambiar-contrasena/${userData.id}`,
+        {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({ nuevaContrasena: newPassword }),
+        },
+      )
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || "Error al cambiar contraseña")
+      }
+
+      setNewPassword("")
+      setShowPasswordModal(false)
+      alert("Contraseña cambiada exitosamente")
+    } catch (err) {
+      console.error(err)
+      alert("Hubo un error al cambiar la contraseña")
     }
-
-    // Guardar en localStorage
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
-
-    // Actualizar estado
-    setUserData(updatedUser)
-
-    // Limpiar campo y cerrar modal
-    setNewPassword("")
-    setShowPasswordModal(false)
-
-    alert("Contraseña cambiada exitosamente")
   }
 
   const handleMenuClick = (menu) => {
-    if (menu === "usuarios") {
-      navigate("/gestion-usuarios")
-    } else if (menu === "vehiculos") {
-      navigate("/gestion-vehiculos")
-    } else {
-      setActiveMenu(menu)
-    }
-    // Aquí puedes agregar navegación a otras secciones del admin
+    if (menu === "usuarios")      navigate("/gestion-usuarios")
+    else if (menu === "vehiculos")navigate("/gestion-vehiculos")
+    else                          setActiveMenu(menu)
   }
 
-  // Estilos inline para asegurar que funcione sin Tailwind
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser")
+    localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("token")
+    navigate("/")
+  }
+
+  /* --------------------------- estilos (sin cambios) --------------------------- */
   const containerStyle = {
     display: "flex",
     minHeight: "100vh",
@@ -124,7 +167,7 @@ const DashboardAdmin = () => {
 
   const sidebarStyle = {
     width: "280px",
-    backgroundColor: "#038C3E", // Cambio de color verde
+    backgroundColor: "#038C3E",
     color: "white",
     display: "flex",
     flexDirection: "column",
@@ -143,7 +186,6 @@ const DashboardAdmin = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    //backgroundColor: "white",
     borderRadius: "50%",
     overflow: "hidden",
     display: "flex",
@@ -269,7 +311,6 @@ const DashboardAdmin = () => {
     transition: "background-color 0.3s ease",
   }
 
-  // Estilos para los modales
   const modalOverlayStyle = {
     position: "fixed",
     top: 0,
@@ -345,19 +386,10 @@ const DashboardAdmin = () => {
     marginTop: "1rem",
   }
 
-  const handleLogout = () => {
-    // Limpiar localStorage
-    localStorage.removeItem("currentUser")
-    localStorage.removeItem("isAuthenticated")
-
-    // Redirigir al login
-    navigate("/")
-  }
-
-  // Si no hay datos del usuario, mostrar loading
+  /* --------------------------- render --------------------------- */
   if (!userData) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+      <div style={{ display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh" }}>
         <div>Cargando...</div>
       </div>
     )
@@ -365,9 +397,8 @@ const DashboardAdmin = () => {
 
   return (
     <div style={containerStyle}>
-      {/* Sidebar */}
+      {/* ---------- Sidebar ---------- */}
       <div style={sidebarStyle}>
-        {/* Logo */}
         <div style={logoContainerStyle}>
           <div style={logoCircleStyle}>
             <img
@@ -381,11 +412,9 @@ const DashboardAdmin = () => {
               }}
             />
           </div>
-          {/* Admin Label */}
           <div style={adminLabelStyle}>Admin</div>
         </div>
 
-        {/* Menu */}
         <div style={menuSectionStyle}>
           <div
             style={activeMenu === "perfil" ? activeMenuItemStyle : menuItemStyle}
@@ -393,14 +422,12 @@ const DashboardAdmin = () => {
           >
             Menu Perfil
           </div>
-
           <div
             style={activeMenu === "usuarios" ? activeMenuItemStyle : menuItemStyle}
             onClick={() => handleMenuClick("usuarios")}
           >
             usuarios
           </div>
-
           <div
             style={activeMenu === "vehiculos" ? activeMenuItemStyle : menuItemStyle}
             onClick={() => handleMenuClick("vehiculos")}
@@ -409,7 +436,6 @@ const DashboardAdmin = () => {
           </div>
         </div>
 
-        {/* Logout */}
         <div style={logoutStyle}>
           <button
             style={logoutButtonStyle}
@@ -417,12 +443,12 @@ const DashboardAdmin = () => {
             onMouseOver={(e) => (e.target.style.backgroundColor = "rgba(255,255,255,0.1)")}
             onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ---------- Main Content ---------- */}
       <div style={mainContentStyle}>
         <div style={headerStyle}>
           <h1 style={nameStyle}>{userData.name.toUpperCase()}</h1>
@@ -432,18 +458,10 @@ const DashboardAdmin = () => {
         {/* Información Personal */}
         <div style={sectionStyle}>
           <h3 style={sectionTitleStyle}>Información Personal:</h3>
-          <div style={infoItemStyle}>
-            <strong>Nombre:</strong> {userData.name}
-          </div>
-          <div style={infoItemStyle}>
-            <strong>Email:</strong> {userData.email}
-          </div>
-          <div style={infoItemStyle}>
-            <strong>Teléfono:</strong> {userData.phone}
-          </div>
-          <div style={infoItemStyle}>
-            <strong>Celular:</strong> {userData.mobile}
-          </div>
+          <div style={infoItemStyle}><strong>Nombre:</strong>  {userData.name}</div>
+          <div style={infoItemStyle}><strong>Email:</strong>   {userData.email}</div>
+          <div style={infoItemStyle}><strong>Teléfono:</strong>{userData.phone || "—"}</div>
+          <div style={infoItemStyle}><strong>Celular:</strong> {userData.mobile || "—"}</div>
         </div>
 
         {/* Editar Información */}
@@ -470,13 +488,11 @@ const DashboardAdmin = () => {
         </div>
       </div>
 
-      {/* Modal de Edición de Perfil */}
+      {/* ---------- Modal Edición Perfil ---------- */}
       {showEditModal && (
         <div style={modalOverlayStyle}>
           <div style={modalStyle}>
-            <button style={closeButtonStyle} onClick={() => setShowEditModal(false)}>
-              ×
-            </button>
+            <button style={closeButtonStyle} onClick={() => setShowEditModal(false)}>×</button>
             <div style={modalHeaderStyle}>
               <h2 style={modalTitleStyle}>Editar Perfil</h2>
               <p style={modalSubtitleStyle}>Editar la información personal de su perfil</p>
@@ -537,17 +553,15 @@ const DashboardAdmin = () => {
         </div>
       )}
 
-      {/* Modal de Cambio de Contraseña */}
+      {/* ---------- Modal Cambio Contraseña ---------- */}
       {showPasswordModal && (
         <div style={modalOverlayStyle}>
           <div style={modalStyle}>
-            <button style={closeButtonStyle} onClick={() => setShowPasswordModal(false)}>
-              ×
-            </button>
+            <button style={closeButtonStyle} onClick={() => setShowPasswordModal(false)}>×</button>
             <div style={modalHeaderStyle}>
               <h2 style={modalTitleStyle}>Cambio de Contraseña</h2>
               <p style={modalSubtitleStyle}>
-                ¿Olvidaste tu contraseña? Ingrese los detalles a continuación para recuperar sus credenciales
+                ¿Olvidaste tu contraseña? Ingrese los detalles a continuación para recuperarla
               </p>
             </div>
             <form onSubmit={handlePasswordSubmit}>

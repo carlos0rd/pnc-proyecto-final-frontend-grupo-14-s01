@@ -14,12 +14,6 @@ import VehiculosMecanico from "../pages/Mecanico/VehiculosMecanico"
 import ReparacionesMecanico from "../pages/Mecanico/ReparacionesMecanico"
 import ServiciosClienteDesdeMecanico from "../pages/Mecanico/ServiciosClienteDesdeMecanico"
 
-
-
-
-
-
-
 function AppRoutes() {
   return (
     <BrowserRouter>
@@ -44,7 +38,3 @@ function AppRoutes() {
 }
 
 export default AppRoutes;
-
-
-
-
