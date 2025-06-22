@@ -2,197 +2,83 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import axios from "axios"; 
 
 const ServiciosClienteDesdeMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
   const [userData, setUserData] = useState(null)
   const [vehiculoData, setVehiculoData] = useState(null)
-  const [reparacionData, setReparacionData] = useState(null)
-  const [showEditModal, setShowEditModal] = useState(false)
+  const [reparacionInfo, setReparacionInfo] = useState(null);   
+  const [servicios,      setServicios]      = useState([]);     
+  const [showEditModal,  setShowEditModal]  = useState(false);
   const [selectedServicio, setSelectedServicio] = useState(null)
   const [editFormData, setEditFormData] = useState({
-    nombre: "",
+    nombre_servicio: "",
     descripcion: "",
-    fechaInicio: "",
-    fechaFinalizacion: "",
-    status: "",
-    valor: "",
+    fecha_inicio: "",
+    fecha_fin: "",
+    precio: "",
   })
   const navigate = useNavigate()
   const { vehiculoId, reparacionId } = useParams()
 
-  // Datos de vehículos quemados para el ejemplo
-  const vehiculosData = [
-    {
-      id: 1,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      marca: "Toyota",
-      modelo: "Corolla",
-      placa: "DEF-5678",
-      mecanico: "Pedro",
-      imagen:
-        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      marca: "Honda",
-      modelo: "Civic",
-      placa: "GHI-9012",
-      mecanico: "Carlos",
-      imagen:
-        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-  ]
-
-  // Datos de reparaciones quemados para el ejemplo
-  const reparacionesData = [
-    {
-      id: "0001",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Cambio de ruedas",
-          descripcion: "Reemplace las ruedas estándar con ruedas personalizadas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Finalizado",
-          valor: "$ 820,76",
-        },
-        {
-          nombre: "Cambio de aceite",
-          descripcion: "Cambio de aceite y filtro",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 150,00",
-        },
-        {
-          nombre: "Revisión de frenos",
-          descripcion: "Revisión y ajuste del sistema de frenos",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.901,52",
-        },
-      ],
-    },
-    {
-      id: "0002",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Rechazado por el cliente",
-      valor: "$ 872,28",
-      servicios: [
-        {
-          nombre: "Cambio de batería",
-          descripcion: "Reemplazo de batería agotada",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Rechazado",
-          valor: "$ 872,28",
-        },
-      ],
-    },
-    {
-      id: "0003",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Alineación y balanceo",
-          descripcion: "Alineación de dirección y balanceo de ruedas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-        {
-          nombre: "Cambio de amortiguadores",
-          descripcion: "Reemplazo de amortiguadores delanteros y traseros",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.672,28",
-        },
-      ],
-    },
-    // Reparaciones para otros vehículos...
-    {
-      id: "0004",
-      vehiculoId: 2,
-      fechaInicio: "15/10/2021",
-      fechaFinalizacion: "20/10/2021",
-      status: "Finalizado",
-      valor: "$ 2.500,00",
-      servicios: [
-        {
-          nombre: "Mantenimiento general",
-          descripcion: "Revisión completa del vehículo y cambio de filtros",
-          fechaInicio: "15/10/2021",
-          fechaFinalizacion: "20/10/2021",
-          status: "Finalizado",
-          valor: "$ 2.500,00",
-        },
-      ],
-    },
-  ]
+  // Estado para el modal de agregar servicio
+  const [showAddModal, setShowAddModal]  = useState(false);
+  const [addFormData,  setAddFormData]   = useState({
+    nombre_servicio: "",
+    descripcion:     "",
+    fecha_inicio:    "",
+    fecha_fin:       "",
+    precio:          "",
+  });
 
   useEffect(() => {
-    // Verificar si el usuario está autenticado
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const currentUser = localStorage.getItem("currentUser")
+  // Verificar autenticación y rol del usuario
+  const isAuthenticated = localStorage.getItem("isAuthenticated");
+  const currentUser     = localStorage.getItem("currentUser");
 
-    if (!isAuthenticated || !currentUser) {
-      navigate("/")
-      return
+  if (!isAuthenticated || !currentUser) {
+    navigate("/");
+    return;
+  }
+
+  const user = JSON.parse(currentUser);
+  if (user.rol_id !== 2) {
+    navigate(user.rol_id === 3 ? "/dashboard-admin" : "/dashboard-cliente");
+    return;
+  }
+  setUserData(user);
+
+  
+  (async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      
+      const repRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/reparaciones/${reparacionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setReparacionInfo(repRes.data);         
+
+      const servRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/servicios/reparacion/${reparacionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setServicios(Array.isArray(servRes.data) ? servRes.data : []);
+      
+      const vehRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/vehiculos/${vehiculoId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setVehiculoData(vehRes.data);
+
+    } catch (err) {
+      console.error(err);
+      navigate(`/reparaciones-mecanico/${vehiculoId}`);
     }
-
-    const user = JSON.parse(currentUser)
-    if (user.role !== "mecanico") {
-      if (user.role === "admin" || user.email.includes("admin")) {
-        navigate("/dashboard-admin")
-      } else {
-        navigate("/dashboard-cliente")
-      }
-      return
-    }
-
-    setUserData(user)
-
-    // Buscar el vehículo por ID
-    const vehiculo = vehiculosData.find((v) => v.id === Number.parseInt(vehiculoId))
-    if (!vehiculo) {
-      navigate("/vehiculos-mecanico")
-      return
-    }
-    setVehiculoData(vehiculo)
-
-    // Buscar la reparación por ID
-    const reparacion = reparacionesData.find(
-      (r) => r.id === reparacionId && r.vehiculoId === Number.parseInt(vehiculoId),
-    )
-    if (!reparacion) {
-      navigate(`/reparaciones-mecanico/${vehiculoId}`)
-      return
-    }
-    setReparacionData(reparacion)
-  }, [vehiculoId, reparacionId, navigate])
+  })();
+}, [vehiculoId, reparacionId, navigate]);
 
   // Estilos inline
   const containerStyle = {
@@ -524,33 +410,90 @@ const ServiciosClienteDesdeMecanico = () => {
   const handleEditServicio = (servicio, index) => {
     setSelectedServicio({ ...servicio, index })
     setEditFormData({
-      nombre: servicio.nombre,
-      descripcion: servicio.descripcion,
-      fechaInicio: servicio.fechaInicio,
-      fechaFinalizacion: servicio.fechaFinalizacion,
-      status: servicio.status,
-      valor: servicio.valor,
+      nombre_servicio:  servicio.nombre_servicio,
+      descripcion:      servicio.descripcion ?? "",
+      fecha_inicio:     servicio.fecha_inicio?.slice(0,10) ?? "",
+      fecha_fin:        servicio.fecha_fin?.slice(0,10)    ?? "",
+      precio:           servicio.precio,
     })
     setShowEditModal(true)
   }
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target
-    setEditFormData({
-      ...editFormData,
-      [name]: value,
-    })
+  const handleEditChange = ({target}) => {
+   setEditFormData({ ...editFormData, [target.name]: target.value });
   }
 
-  const handleEditSubmit = (e) => {
-    e.preventDefault()
-    console.log("Guardando servicio:", editFormData)
-    // Aquí implementarías la lógica para guardar los cambios
-    setShowEditModal(false)
-    alert("Servicio actualizado exitosamente")
-  }
+  const handleEditSubmit = async (e) => {
+  e.preventDefault();
 
-  if (!userData || !vehiculoData || !reparacionData) {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/servicios/${selectedServicio.id}`,
+        {
+          nombre_servicio: editFormData.nombre_servicio,
+          descripcion:     editFormData.descripcion,
+          fecha_inicio:    editFormData.fecha_inicio || null,
+          fecha_fin:       editFormData.fecha_fin    || null,
+          precio:          parseFloat(editFormData.precio) || 0,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      /* Actualizar la lista en pantalla sin recargar */
+      setServicios((prev) =>
+        prev.map((s) =>
+          s.id === selectedServicio.id
+            ? { ...s, ...editFormData }
+            : s
+        )
+      );
+
+      setShowEditModal(false);
+      alert("Servicio actualizado correctamente");
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar el servicio");
+    }
+  };
+
+    const handleAddChange = ({ target }) =>
+    setAddFormData({ ...addFormData, [target.name]: target.value });
+
+    const handleAddSubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const token = localStorage.getItem("token");
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/servicios`,
+          {
+            ...addFormData,
+            precio: parseFloat(addFormData.precio) || 0,
+            reparacion_id: reparacionId,         
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // Refrescar la lista localmente 
+        setServicios((prev) => [...prev, { ...addFormData, id: Date.now() }]);
+        setShowAddModal(false);
+        setAddFormData({
+          nombre_servicio: "",
+          descripcion: "",
+          fecha_inicio: "",
+          fecha_fin: "",
+          precio: "",
+        });
+        alert("Servicio agregado correctamente");
+      } catch (err) {
+        console.error(err);
+        alert("Error al agregar el servicio");
+      }
+    };
+
+
+  if (!userData || !vehiculoData || !reparacionInfo) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
         <div>Cargando...</div>
@@ -618,28 +561,59 @@ const ServiciosClienteDesdeMecanico = () => {
 
         {/* Header */}
         <div style={headerStyle}>
-          <h1 style={titleStyle}>Reparación #{reparacionData.id}</h1>
+          <h1 style={titleStyle}>Reparación #{reparacionInfo.id}</h1>
           <p style={subtitleStyle}>
             {vehiculoData.marca} {vehiculoData.modelo}
           </p>
           <p style={subtitleStyle}>Placa: {vehiculoData.placa}</p>
 
           <div style={infoRowStyle}>
-            <span>Fecha de Inicio: {reparacionData.fechaInicio}</span>
-            <span>Fecha de Finalización: {reparacionData.fechaFinalizacion}</span>
+            <span>Fecha de Inicio: {reparacionInfo.fecha_inicio}</span>
+            <span>Fecha de Finalización: {reparacionInfo.fecha_fin}</span>
           </div>
         </div>
 
         {/* Servicios Section */}
-        <h2 style={sectionTitleStyle}>Servicios</h2>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",           
+              marginBottom: "1rem"
+            }}
+          >
+            <h2 style={sectionTitleStyle}>Servicios</h2>
 
+            <button
+              onClick={() => setShowAddModal(true)}
+              style={{
+                backgroundColor: "#22c55e",
+                color: "white",
+                padding: "0.6rem 1.2rem",
+                borderRadius: "0.375rem",
+                fontWeight: 600,
+                border: "none",
+                cursor: "pointer"
+              }}
+              onMouseOver={e => (e.target.style.backgroundColor = "#16a34a")}
+              onMouseOut={e => (e.target.style.backgroundColor = "#22c55e")}
+            >
+              Agregar Servicio
+            </button>
+          </div>
         {/* Lista de Servicios */}
-        {reparacionData.servicios.map((servicio, index) => (
+        
+        {servicios.length === 0 && (
+             <p style={{ color: "#6b7280", fontSize: "1rem" }}>Esta reparación no tiene servicios asociados.</p>
+
+        )}
+
+        {servicios.map((servicio, index) => (
           <div key={index} style={servicioCardStyle}>
-            <h3 style={servicioTitleStyle}>{servicio.nombre}</h3>
+            <h3 style={servicioTitleStyle}>{servicio.nombre_servicio}</h3>
             <p style={servicioDescriptionStyle}>Descripción: {servicio.descripcion}</p>
-            <p style={servicioDetailStyle}>Fecha de Inicio: {servicio.fechaInicio}</p>
-            <p style={servicioDetailStyle}>Fecha de Finalización: {servicio.fechaFinalizacion}</p>
+            <p style={servicioDetailStyle}>Fecha de Inicio: {servicio.fecha_inicio}</p>
+            <p style={servicioDetailStyle}>Fecha de Finalización: {servicio.fecha_fin}</p>
 
             <div style={statusContainerStyle}>
               <button
@@ -656,8 +630,8 @@ const ServiciosClienteDesdeMecanico = () => {
               >
                 Editar
               </button>
-              <p style={getStatusStyle(servicio.status)}>Status: {servicio.status}</p>
-              <p style={valorStyle}>Valor: {servicio.valor}</p>
+   
+              <p style={valorStyle}>Valor: ${servicio.precio}</p>
             </div>
           </div>
         ))}
@@ -676,8 +650,8 @@ const ServiciosClienteDesdeMecanico = () => {
               <div style={formGroupStyle}>
                 <input
                   type="text"
-                  name="nombre"
-                  value={editFormData.nombre}
+                  name="nombre_servicio"
+                  value={editFormData.nombre_servicio}
                   onChange={handleEditChange}
                   style={inputStyle}
                   placeholder="Nombre del servicio"
@@ -698,9 +672,9 @@ const ServiciosClienteDesdeMecanico = () => {
 
               <div style={formGroupStyle}>
                 <input
-                  type="text"
-                  name="fechaInicio"
-                  value={editFormData.fechaInicio}
+                  type="date"
+                  name="fecha_inicio"
+                  value={editFormData.fecha_inicio ?? ""}
                   onChange={handleEditChange}
                   style={inputStyle}
                   placeholder="Fecha de inicio (DD/MM/YYYY)"
@@ -710,9 +684,9 @@ const ServiciosClienteDesdeMecanico = () => {
 
               <div style={formGroupStyle}>
                 <input
-                  type="text"
-                  name="fechaFinalizacion"
-                  value={editFormData.fechaFinalizacion}
+                  type="date"
+                  name="fecha_fin"
+                  value={editFormData.fecha_fin ?? ""}
                   onChange={handleEditChange}
                   style={inputStyle}
                   placeholder="Fecha de finalización (DD/MM/YYYY o ----)"
@@ -720,26 +694,11 @@ const ServiciosClienteDesdeMecanico = () => {
               </div>
 
               <div style={formGroupStyle}>
-                <select
-                  name="status"
-                  value={editFormData.status}
-                  onChange={handleEditChange}
-                  style={selectStyle}
-                  required
-                >
-                  <option value="">Seleccionar status</option>
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="En curso">En curso</option>
-                  <option value="Finalizado">Finalizado</option>
-                  <option value="Rechazado">Rechazado</option>
-                </select>
-              </div>
-
-              <div style={formGroupStyle}>
                 <input
-                  type="text"
-                  name="valor"
-                  value={editFormData.valor}
+                  type="number"
+                  step="0.01"
+                  name="precio"
+                  value={editFormData.precio.toString()}
                   onChange={handleEditChange}
                   style={inputStyle}
                   placeholder="Valor ($ 0.00)"
@@ -760,6 +719,97 @@ const ServiciosClienteDesdeMecanico = () => {
                   type="button"
                   style={cancelButtonStyle}
                   onClick={() => setShowEditModal(false)}
+                  onMouseOver={(e) => (e.target.style.backgroundColor = "#4b5563")}
+                  onMouseOut={(e) => (e.target.style.backgroundColor = "#6b7280")}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal agregar servicio */}
+      {showAddModal && (
+        <div style={modalOverlayStyle} onClick={() => setShowAddModal(false)}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={modalHeaderStyle}>
+              <h2 style={modalTitleStyle}>Nuevo Servicio</h2>
+              <p style={modalSubtitleStyle}>Complete los datos del servicio</p>
+            </div>
+
+            <form onSubmit={handleAddSubmit}>
+              <div style={formGroupStyle}>
+                <input
+                  type="text"
+                  name="nombre_servicio"
+                  value={addFormData.nombre_servicio}
+                  onChange={handleAddChange}
+                  style={inputStyle}
+                  placeholder="Nombre del servicio"
+                  required
+                />
+              </div>
+
+              <div style={formGroupStyle}>
+                <textarea
+                  name="descripcion"
+                  value={addFormData.descripcion}
+                  onChange={handleAddChange}
+                  style={textareaStyle}
+                  placeholder="Descripción del servicio"
+                  required
+                />
+              </div>
+
+              <div style={formGroupStyle}>
+                <input
+                  type="date"
+                  name="fecha_inicio"
+                  value={addFormData.fecha_inicio}
+                  onChange={handleAddChange}
+                  style={inputStyle}
+                  required
+                />
+              </div>
+
+              <div style={formGroupStyle}>
+                <input
+                  type="date"
+                  name="fecha_fin"
+                  value={addFormData.fecha_fin}
+                  onChange={handleAddChange}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={formGroupStyle}>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="precio"
+                  value={addFormData.precio}
+                  onChange={handleAddChange}
+                  style={inputStyle}
+                  placeholder="Valor ($ 0.00)"
+                  required
+                />
+              </div>
+
+              <div style={buttonContainerStyle}>
+                <button
+                  type="submit"
+                  style={saveButtonStyle}
+                  onMouseOver={(e) => (e.target.style.backgroundColor = "#16a34a")}
+                  onMouseOut={(e) => (e.target.style.backgroundColor = "#22c55e")}
+                >
+                  Guardar
+                </button>
+                <button
+                  type="button"
+                  style={cancelButtonStyle}
+                  onClick={() => setShowAddModal(false)}
                   onMouseOver={(e) => (e.target.style.backgroundColor = "#4b5563")}
                   onMouseOut={(e) => (e.target.style.backgroundColor = "#6b7280")}
                 >

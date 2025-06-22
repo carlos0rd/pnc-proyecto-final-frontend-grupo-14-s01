@@ -37,6 +37,8 @@ const DashboardCliente = () => {
       phone: user.phone,
       mobile: user.mobile,
     })
+
+    console.log(user);
   }, [navigate])
 
   const handleEditChange = (e) => {

@@ -84,7 +84,7 @@ const Login = () => {
   
       /* 5️⃣  REDIRIGE SEGÚN ROL ───────────────────────── */
       if (perfil.rol_id === 1)      navigate("/dashboard-cliente");
-      else if (perfil.rol_id === 2) navigate("/dashboard-mecanico");
+      else if (perfil.rol_id === 2 ) navigate("/dashboard-mecanico");
       else if (perfil.rol_id === 3) navigate("/dashboard-admin");
       else                          navigate("/");
   
