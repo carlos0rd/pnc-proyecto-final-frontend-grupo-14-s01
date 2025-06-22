@@ -47,54 +47,90 @@ const DashboardCliente = () => {
     })
   }
 
-  const handleEditSubmit = (e) => {
-    e.preventDefault()
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
 
-    // Actualizar datos del usuario
-    const updatedUser = {
-      ...userData,
-      name: editFormData.name,
-      email: editFormData.email,
-      phone: editFormData.phone,
-      mobile: editFormData.mobile,
+    const token = localStorage.getItem("token");
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const userId = currentUser.id;
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nombre_completo: editFormData.name,
+          email: editFormData.email,
+          telefono: editFormData.phone,
+          celular: editFormData.mobile
+        })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Error al actualizar");
+      }
+
+      alert("Perfil actualizado correctamente.");
+
+      // Actualizar localStorage y estado local
+      const updatedUser = {
+        ...currentUser,
+        name: editFormData.name,
+        email: editFormData.email,
+        phone: editFormData.phone,
+        mobile: editFormData.mobile
+      };
+
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+      setUserData(updatedUser);
+      setShowEditModal(false);
+    } catch (error) {
+      console.error("Error al guardar los cambios:", error.message);
+      alert("Hubo un problema al actualizar tu perfil.");
     }
+  };
 
-    // Guardar en localStorage
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
-
-    // Actualizar estado
-    setUserData(updatedUser)
-
-    // Cerrar modal
-    setShowEditModal(false)
-  }
-
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault()
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
 
     if (newPassword.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres")
-      return
+      alert("La contraseña debe tener al menos 6 caracteres");
+      return;
     }
 
-    // Actualizar contraseña del usuario
-    const updatedUser = {
-      ...userData,
-      password: newPassword,
+    const token = localStorage.getItem("token");
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const userId = currentUser.id;
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/cambiar-contrasena/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nuevaContrasena: newPassword
+        })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Error al cambiar contraseña");
+      }
+
+      alert("Contraseña cambiada exitosamente.");
+      setNewPassword("");
+      setShowPasswordModal(false);
+    } catch (error) {
+      console.error("Error al cambiar contraseña:", error.message);
+      alert("Hubo un error al cambiar la contraseña.");
     }
-
-    // Guardar en localStorage
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
-
-    // Actualizar estado
-    setUserData(updatedUser)
-
-    // Limpiar campo y cerrar modal
-    setNewPassword("")
-    setShowPasswordModal(false)
-
-    alert("Contraseña cambiada exitosamente")
-  }
+  };
 
   const handleMenuClick = (menu) => {
     if (menu === "vehiculos") {
@@ -406,7 +442,7 @@ const DashboardCliente = () => {
       {/* Main Content */}
       <div style={mainContentStyle}>
         <div style={headerStyle}>
-        <h1 style={nameStyle}>{userData?.name?.toUpperCase() || "Usuario"}</h1>
+          <h1 style={nameStyle}>{userData?.name?.toUpperCase() || "Usuario"}</h1>
           <h2 style={subtitleStyle}>Menú Perfil</h2>
         </div>
 

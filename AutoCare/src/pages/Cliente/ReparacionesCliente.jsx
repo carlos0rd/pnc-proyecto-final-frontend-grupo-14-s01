@@ -9,226 +9,37 @@ const ReparacionesCliente = () => {
   const [vehiculoData, setVehiculoData] = useState(null)
   const navigate = useNavigate()
   const { id } = useParams()
-
-  // Datos de vehículos quemados para el ejemplo
-  const vehiculosData = [
-    {
-      id: 1,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      marca: "Toyota",
-      modelo: "Corolla",
-      placa: "DEF-5678",
-      mecanico: "Pedro",
-      imagen:
-        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      marca: "Honda",
-      modelo: "Civic",
-      placa: "GHI-9012",
-      mecanico: "Carlos",
-      imagen:
-        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-  ]
-
-  // Datos de reparaciones quemados para el ejemplo
-  const reparacionesData = [
-    // Reparaciones para Vehículo 1 (Chevrolet Onix ABC-1234)
-    {
-      id: "0001",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Cambio de ruedas",
-          descripcion: "Reemplace las ruedas estándar con ruedas personalizadas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Finalizado",
-          valor: "$ 820,76",
-        },
-        {
-          nombre: "Cambio de aceite",
-          descripcion: "Cambio de aceite y filtro",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 150,00",
-        },
-        {
-          nombre: "Revisión de frenos",
-          descripcion: "Revisión y ajuste del sistema de frenos",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.901,52",
-        },
-      ],
-    },
-    {
-      id: "0002",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Rechazado por el cliente",
-      valor: "$ 872,28",
-      servicios: [
-        {
-          nombre: "Cambio de batería",
-          descripcion: "Reemplazo de batería agotada",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Rechazado",
-          valor: "$ 872,28",
-        },
-      ],
-    },
-    {
-      id: "0003",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Alineación y balanceo",
-          descripcion: "Alineación de dirección y balanceo de ruedas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-        {
-          nombre: "Cambio de amortiguadores",
-          descripcion: "Reemplazo de amortiguadores delanteros y traseros",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.672,28",
-        },
-      ],
-    },
-    // Reparaciones para Vehículo 2 (Toyota Corolla DEF-5678)
-    {
-      id: "0004",
-      vehiculoId: 2,
-      fechaInicio: "15/10/2021",
-      fechaFinalizacion: "20/10/2021",
-      status: "Finalizado",
-      valor: "$ 2.500,00",
-      servicios: [
-        {
-          nombre: "Mantenimiento general",
-          descripcion: "Revisión completa del vehículo y cambio de filtros",
-          fechaInicio: "15/10/2021",
-          fechaFinalizacion: "20/10/2021",
-          status: "Finalizado",
-          valor: "$ 2.500,00",
-        },
-      ],
-    },
-    {
-      id: "0005",
-      vehiculoId: 2,
-      fechaInicio: "05/11/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 1.800,00",
-      servicios: [
-        {
-          nombre: "Reparación de transmisión",
-          descripcion: "Revisión y reparación del sistema de transmisión",
-          fechaInicio: "05/11/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 1.800,00",
-        },
-      ],
-    },
-    // Reparaciones para Vehículo 3 (Honda Civic GHI-9012)
-    {
-      id: "0006",
-      vehiculoId: 3,
-      fechaInicio: "01/12/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 950,00",
-      servicios: [
-        {
-          nombre: "Cambio de llantas",
-          descripcion: "Reemplazo de las cuatro llantas del vehículo",
-          fechaInicio: "01/12/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 950,00",
-        },
-      ],
-    },
-    {
-      id: "0007",
-      vehiculoId: 3,
-      fechaInicio: "10/12/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.200,00",
-      servicios: [
-        {
-          nombre: "Reparación de motor",
-          descripcion: "Revisión completa y reparación del motor",
-          fechaInicio: "10/12/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 2.000,00",
-        },
-        {
-          nombre: "Cambio de sistema eléctrico",
-          descripcion: "Actualización del sistema eléctrico del vehículo",
-          fechaInicio: "10/12/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-      ],
-    },
-  ]
+  const [reparaciones, setReparaciones] = useState([]);
 
   useEffect(() => {
-    // Verificar si el usuario está autenticado
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const currentUser = localStorage.getItem("currentUser")
+    const token = localStorage.getItem("token");
+    const currentUser = localStorage.getItem("currentUser");
 
-    if (!isAuthenticated || !currentUser) {
-      // Si no está autenticado, redirigir al login
-      navigate("/")
-      return
+    if (!token || !currentUser) {
+      navigate("/");
+      return;
     }
+    setUserData(JSON.parse(currentUser));
 
-    // Cargar datos del usuario
-    setUserData(JSON.parse(currentUser))
+    /* 1. Traer info del vehículo ---------------------------------- */
+    fetch(`${import.meta.env.VITE_API_URL}/vehiculos/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error("Vehículo no encontrado");
+        return r.json();
+      })
+      .then((vehiculo) => setVehiculoData(vehiculo))
+      .catch(() => navigate("/vehiculos-cliente"));   // sólo si realmente no existe
 
-    // Buscar el vehículo por ID
-    const vehiculo = vehiculosData.find((v) => v.id === Number.parseInt(id))
-    if (vehiculo) {
-      setVehiculoData(vehiculo)
-    } else {
-      // Si no se encuentra el vehículo, redirigir a la lista de vehículos
-      navigate("/vehiculos-cliente")
-    }
-  }, [id, navigate])
+    /* 2. Traer reparaciones del vehículo --------------------------- */
+    fetch(`${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setReparaciones(data))          // puede ser []
+      .catch((err) => console.error(err));
+  }, [id, navigate]);
 
   // Estilos inline para asegurar que funcione sin Tailwind
   const containerStyle = {
@@ -507,44 +318,37 @@ const ReparacionesCliente = () => {
           &lt; Menú Vehículos
         </div>
 
-        {/* Header */}
-        <div style={headerStyle}>
-          <h1 style={titleStyle}>
-            {vehiculoData.marca} {vehiculoData.modelo}
-          </h1>
-          <p style={subtitleStyle}>Placa: {vehiculoData.placa}</p>
-        </div>
-
+        {/* Header del vehículo */}
+        <h1 style={titleStyle}>
+          {vehiculoData?.marca} {vehiculoData?.modelo}
+        </h1>
+        <p style={subtitleStyle}>Placa: {vehiculoData?.placa}</p>
+        
         {/* Reparaciones Section */}
         <h2 style={sectionTitleStyle}>Registro de Reparaciones</h2>
 
-        {/* Lista de Reparaciones */}
-        {reparacionesData
-          .filter((reparacion) => reparacion.vehiculoId === vehiculoData.id)
-          .map((reparacion) => (
-            <div
-              key={reparacion.id}
-              style={reparacionCardStyle}
-              onClick={() => handleReparacionClick(reparacion.id)}
-              onMouseOver={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)"
-                e.currentTarget.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)"
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.transform = "translateY(0)"
-                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"
-              }}
-            >
-              <h3 style={reparacionTitleStyle}>Reparación #{reparacion.id}</h3>
-              <p style={reparacionDetailStyle}>Fecha de Inicio: {reparacion.fechaInicio}</p>
-              <p style={reparacionDetailStyle}>Fecha de Finalización: {reparacion.fechaFinalizacion}</p>
-
+        {/* Lista de reparaciones */}
+        {reparaciones.length === 0 ? (
+          <p>No hay reparaciones registradas para este vehículo.</p>
+        ) : (
+          reparaciones.map((rep) => (
+            <div key={rep.id} style={reparacionCardStyle}
+              onClick={() => handleReparacionClick(rep.id)}>
+              <h3 style={reparacionTitleStyle}>Reparación #{rep.id}</h3>
+              <p style={reparacionDetailStyle}>
+                Inicio: {new Date(rep.fecha_inicio).toLocaleDateString()}
+              </p>
+              <p style={reparacionDetailStyle}>
+                Fin:&nbsp;
+                {rep.fecha_fin ? new Date(rep.fecha_fin).toLocaleDateString() : "----"}
+              </p>
               <div style={statusContainerStyle}>
-                <p style={getStatusStyle(reparacion.status)}>Status: {reparacion.status}</p>
-                <p style={valorStyle}>Valor: {reparacion.valor}</p>
+                <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
+                <p style={valorStyle}>Valor: ${Number(rep.precio).toFixed(2)}</p>
               </div>
             </div>
-          ))}
+          ))
+        )}
       </div>
     </div>
   )

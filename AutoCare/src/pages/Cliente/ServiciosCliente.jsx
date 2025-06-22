@@ -10,237 +10,57 @@ const ServiciosCliente = () => {
   const [reparacionData, setReparacionData] = useState(null)
   const navigate = useNavigate()
   const { vehiculoId, reparacionId } = useParams()
+  const [servicios, setServicios] = useState([])
 
-  // Datos de vehículos quemados para el ejemplo
-  const vehiculosData = [
-    {
-      id: 1,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      marca: "Toyota",
-      modelo: "Corolla",
-      placa: "DEF-5678",
-      mecanico: "Pedro",
-      imagen:
-        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      marca: "Honda",
-      modelo: "Civic",
-      placa: "GHI-9012",
-      mecanico: "Carlos",
-      imagen:
-        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-  ]
-
-  // Use the same reparacionesData array as in ReparacionesCliente
-  const reparacionesData = [
-    // Reparaciones para Vehículo 1 (Chevrolet Onix ABC-1234)
-    {
-      id: "0001",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Cambio de ruedas",
-          descripcion: "Reemplace las ruedas estándar con ruedas personalizadas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Finalizado",
-          valor: "$ 820,76",
-        },
-        {
-          nombre: "Cambio de aceite",
-          descripcion: "Cambio de aceite y filtro",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 150,00",
-        },
-        {
-          nombre: "Revisión de frenos",
-          descripcion: "Revisión y ajuste del sistema de frenos",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.901,52",
-        },
-      ],
-    },
-    {
-      id: "0002",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Rechazado por el cliente",
-      valor: "$ 872,28",
-      servicios: [
-        {
-          nombre: "Cambio de batería",
-          descripcion: "Reemplazo de batería agotada",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Rechazado",
-          valor: "$ 872,28",
-        },
-      ],
-    },
-    {
-      id: "0003",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Alineación y balanceo",
-          descripcion: "Alineación de dirección y balanceo de ruedas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-        {
-          nombre: "Cambio de amortiguadores",
-          descripcion: "Reemplazo de amortiguadores delanteros y traseros",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.672,28",
-        },
-      ],
-    },
-    // Reparaciones para Vehículo 2 (Toyota Corolla DEF-5678)
-    {
-      id: "0004",
-      vehiculoId: 2,
-      fechaInicio: "15/10/2021",
-      fechaFinalizacion: "20/10/2021",
-      status: "Finalizado",
-      valor: "$ 2.500,00",
-      servicios: [
-        {
-          nombre: "Mantenimiento general",
-          descripcion: "Revisión completa del vehículo y cambio de filtros",
-          fechaInicio: "15/10/2021",
-          fechaFinalizacion: "20/10/2021",
-          status: "Finalizado",
-          valor: "$ 2.500,00",
-        },
-      ],
-    },
-    {
-      id: "0005",
-      vehiculoId: 2,
-      fechaInicio: "05/11/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 1.800,00",
-      servicios: [
-        {
-          nombre: "Reparación de transmisión",
-          descripcion: "Revisión y reparación del sistema de transmisión",
-          fechaInicio: "05/11/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 1.800,00",
-        },
-      ],
-    },
-    // Reparaciones para Vehículo 3 (Honda Civic GHI-9012)
-    {
-      id: "0006",
-      vehiculoId: 3,
-      fechaInicio: "01/12/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 950,00",
-      servicios: [
-        {
-          nombre: "Cambio de llantas",
-          descripcion: "Reemplazo de las cuatro llantas del vehículo",
-          fechaInicio: "01/12/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 950,00",
-        },
-      ],
-    },
-    {
-      id: "0007",
-      vehiculoId: 3,
-      fechaInicio: "10/12/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.200,00",
-      servicios: [
-        {
-          nombre: "Reparación de motor",
-          descripcion: "Revisión completa y reparación del motor",
-          fechaInicio: "10/12/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 2.000,00",
-        },
-        {
-          nombre: "Cambio de sistema eléctrico",
-          descripcion: "Actualización del sistema eléctrico del vehículo",
-          fechaInicio: "10/12/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-      ],
-    },
-  ]
 
   useEffect(() => {
-    // Verificar si el usuario está autenticado
-    const isAuthenticated = localStorage.getItem("isAuthenticated")
+    /* 1️⃣ verificación de sesión ---------------------------------------- */
+    const token = localStorage.getItem("token")
     const currentUser = localStorage.getItem("currentUser")
-
-    if (!isAuthenticated || !currentUser) {
-      // Si no está autenticado, redirigir al login
+    if (!token || !currentUser) {
       navigate("/")
       return
     }
 
-    // Cargar datos del usuario
     setUserData(JSON.parse(currentUser))
 
-    // Buscar el vehículo por ID
-    const vehiculo = vehiculosData.find((v) => v.id === Number.parseInt(vehiculoId))
-    if (!vehiculo) {
-      // Si no se encuentra el vehículo, redirigir a la lista de vehículos
-      navigate("/vehiculos-cliente")
-      return
-    }
-    setVehiculoData(vehiculo)
+    /* 2️⃣ pedir la reparación → nos da también el vehículo -------------- */
+    fetch(`${import.meta.env.VITE_API_URL}/reparaciones/${reparacionId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("No se encontró la reparación")
+        return res.json()
+      })
+      .then(reparacion => {
+        setReparacionData(reparacion)
 
-    // Buscar la reparación por ID
-    const reparacion = reparacionesData.find(
-      (r) => r.id === reparacionId && r.vehiculoId === Number.parseInt(vehiculoId),
-    )
-    if (!reparacion) {
-      // Si no se encuentra la reparación, redirigir a la lista de reparaciones
-      navigate(`/reparaciones-cliente/${vehiculoId}`)
-      return
-    }
-    setReparacionData(reparacion)
+        // construimos la info mínima del vehículo
+        setVehiculoData({
+          id: reparacion.vehiculo_id,
+          marca: reparacion.marca,
+          modelo: reparacion.modelo,
+          placa: reparacion.placa,
+        })
+
+        /* 3️⃣ ya conocemos la reparación, pedimos sus servicios ---------- */
+        return fetch(
+          `${import.meta.env.VITE_API_URL}/api/servicios/reparacion/${reparacionId}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("No se encontraron servicios válidos")
+        return res.json()
+      })
+      .then(setServicios)          // guarda el array (vacío o con objetos)
+      .catch(err => {
+        console.error("Error al cargar servicios:", err.message)
+        navigate(`/reparaciones-cliente/${vehiculoId}`)
+      })
   }, [vehiculoId, reparacionId, navigate])
+
+
 
   // Estilos inline para asegurar que funcione sin Tailwind
   const containerStyle = {
@@ -547,19 +367,24 @@ const ServiciosCliente = () => {
         <h2 style={sectionTitleStyle}>Servicios</h2>
 
         {/* Lista de Servicios */}
-        {reparacionData.servicios.map((servicio, index) => (
-          <div key={index} style={servicioCardStyle}>
-            <h3 style={servicioTitleStyle}>{servicio.nombre}</h3>
-            <p style={servicioDescriptionStyle}>Descripción: {servicio.descripcion}</p>
-            <p style={servicioDetailStyle}>Fecha de Inicio: {servicio.fechaInicio}</p>
-            <p style={servicioDetailStyle}>Fecha de Finalización: {servicio.fechaFinalizacion}</p>
+        {servicios.length === 0 ? (
+          <p style={{ color: "#6b7280" }}>No hay servicios registrados para esta reparación.</p>
+        ) : (
+          servicios.map((servicio, index) => (
+            servicio && (
+              <div key={index} style={servicioCardStyle}>
+                <h3 style={servicioTitleStyle}>{servicio.nombre_servicio}</h3>
+                <p style={servicioDescriptionStyle}>Descripción: {servicio.descripcion}</p>
+                <p style={servicioDetailStyle}>Inicio: {servicio.fecha_inicio}</p>
+                <p style={servicioDetailStyle}>Fin: {servicio.fecha_fin}</p>
+                <div style={statusContainerStyle}>
+                  <p style={valorStyle}>Valor: ${servicio.precio}</p>
+                </div>
+              </div>
+            )
+          ))
+        )}
 
-            <div style={statusContainerStyle}>
-              <p style={getStatusStyle(servicio.status)}>Status: {servicio.status}</p>
-              <p style={valorStyle}>Valor: {servicio.valor}</p>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   )

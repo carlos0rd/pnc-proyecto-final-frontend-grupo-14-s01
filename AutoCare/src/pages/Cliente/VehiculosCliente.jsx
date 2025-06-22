@@ -9,35 +9,34 @@ const VehiculosCliente = () => {
   const navigate = useNavigate()
 
   // Datos de vehículos quemados para el ejemplo
-  const vehiculosData = [
-    {
-      id: 1,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-  ]
+  const [vehiculosData, setVehiculosData] = useState([]);
+
+useEffect(() => {
+  const isAuthenticated = localStorage.getItem("isAuthenticated");
+  const currentUser = localStorage.getItem("currentUser");
+  const token = localStorage.getItem("token");
+
+  if (!isAuthenticated || !currentUser) {
+    navigate("/");
+    return;
+  }
+
+  const user = JSON.parse(currentUser);
+  setUserData(user);
+
+  // Obtener vehículos del backend
+  fetch(`${import.meta.env.VITE_API_URL}/vehiculos`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Error al obtener vehículos");
+      return res.json();
+    })
+    .then((data) => setVehiculosData(data))
+    .catch((err) => console.error(err));
+}, [navigate]);
 
   useEffect(() => {
     // Verificar si el usuario está autenticado

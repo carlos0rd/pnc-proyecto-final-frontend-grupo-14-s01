@@ -60,26 +60,27 @@ const Login = () => {
       const { token, error } = await loginRes.json();
       if (!loginRes.ok) throw new Error(error || "Credenciales incorrectas");
   
-      /* 1. login y token obtenidos … */
-localStorage.setItem("token", token);
-localStorage.setItem("isAuthenticated", "true");
-
-/* 2. trae el perfil completo */
-const meRes = await fetch(
-  `${import.meta.env.VITE_API_URL}/usuarios/me`,
-  { headers: { Authorization: `Bearer ${token}` } }
-);
-if (!meRes.ok) throw new Error("No se pudo obtener el perfil");
-const perfil = await meRes.json();
-
-/* 3. guarda currentUser con todos los campos */
-localStorage.setItem("currentUser", JSON.stringify({
-  name:   perfil.nombre_completo,
-  email:  perfil.email,
-  phone:  perfil.telefono  ?? "",
-  mobile: perfil.celular   ?? "",
-  rol_id: perfil.rol_id
-}));
+      /* 2️⃣  GUARDA TOKEN Y FLAG ───────────────────────── */
+      localStorage.setItem("token", token);
+      localStorage.setItem("isAuthenticated", "true");
+  
+      /* 3️⃣  FECTH /usuarios/me  ───────────────────────── */
+      const meRes = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!meRes.ok) throw new Error("No se pudo obtener el perfil");
+  
+      const perfil = await meRes.json();  // {nombre_completo, email, telefono, celular, rol_id}
+      console.log(perfil);
+      /* 4️⃣  GUARDA currentUser COMPLETO ───────────────── */
+      localStorage.setItem("currentUser", JSON.stringify({
+        id: perfil.id,
+        name: perfil.nombre_completo,  // <-- ¡esto estaba faltando!
+        email: perfil.email,
+        phone: perfil.telefono ?? "",
+        mobile: perfil.celular ?? "",
+        rol_id: perfil.rol_id
+      }));
   
       /* 5️⃣  REDIRIGE SEGÚN ROL ───────────────────────── */
       if (perfil.rol_id === 1)      navigate("/dashboard-cliente");
