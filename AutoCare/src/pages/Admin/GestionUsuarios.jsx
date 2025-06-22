@@ -2,158 +2,70 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import axios from "axios"
+
+/* Cambia esta URL a la de tu backend.
+   También puedes exponer VITE_API_URL en tu .env y quedarte solo con la primera parte */
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 const GestionUsuarios = () => {
-  const [activeMenu, setActiveMenu] = useState("usuarios")
-  const [userData, setUserData] = useState(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [editFormData, setEditFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+  const [activeMenu, setActiveMenu]      = useState("usuarios")
+  const [userData, setUserData]          = useState(null)
+  const [usuarios, setUsuarios]          = useState([])         // ← lista real desde BD
+  const [searchTerm, setSearchTerm]      = useState("")
+  const [showEditModal, setShowEditModal]= useState(false)
+  const [selectedUser, setSelectedUser]  = useState(null)
+  const [editFormData, setEditFormData]  = useState({
+    name  : "",
+    email : "",
+    phone : "",
     mobile: "",
-    role: "cliente",
+    role  : "cliente",
   })
   const navigate = useNavigate()
 
-  // Datos de usuarios quemados para el ejemplo
-  const usuariosData = [
-    {
-      id: 1,
-      name: "JUAN TRALALA",
-      email: "juan1@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 2,
-      name: "JUAN TRALALA",
-      email: "leonardo@darede.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 3,
-      name: "JUAN TRALALA",
-      email: "juan3@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "mecanico",
-    },
-    {
-      id: 4,
-      name: "JUAN TRALALA",
-      email: "juan4@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 5,
-      name: "JUAN TRALALA",
-      email: "juan5@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "admin",
-    },
-    {
-      id: 6,
-      name: "JUAN TRALALA",
-      email: "juan6@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 7,
-      name: "JUAN TRALALA",
-      email: "juan7@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "mecanico",
-    },
-    {
-      id: 8,
-      name: "JUAN TRALALA",
-      email: "juan8@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 9,
-      name: "JUAN TRALALA",
-      email: "juan9@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 10,
-      name: "JUAN TRALALA",
-      email: "juan10@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 11,
-      name: "JUAN TRALALA",
-      email: "juan11@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "mecanico",
-    },
-    {
-      id: 12,
-      name: "JUAN TRALALA",
-      email: "juan12@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 13,
-      name: "JUAN TRALALA",
-      email: "juan13@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "admin",
-    },
-    {
-      id: 14,
-      name: "JUAN TRALALA",
-      email: "juan14@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 15,
-      name: "JUAN TRALALA",
-      email: "juan15@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "cliente",
-    },
-    {
-      id: 16,
-      name: "JUAN TRALALA",
-      email: "juan16@autocare.com",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 2222-2222",
-      role: "mecanico",
-    },
-  ]
+  /* ---------- Helpers de API ---------- */
+  const token = localStorage.getItem("token")            // tu middleware JWT lo exige
+  const authHeaders = { Authorization: `Bearer ${token}` }
 
+  const fetchUsuarios = async () => {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/usuarios`, { headers: authHeaders })
+      /* backend devuelve: id, nombre_completo, email, telefono, celular, rol_id */
+      const parsed = data.map(u => ({
+        id    : u.id,
+        name  : u.nombre_completo,
+        email : u.email,
+        phone : u.telefono,
+        mobile: u.celular,
+        role  : u.rol_id === 1 ? "cliente" : u.rol_id === 2 ? "mecanico" : "admin",
+      }))
+      setUsuarios(parsed)
+    } catch (err) {
+      console.error(err)
+      if (err.response?.status === 401) handleLogout()
+    }
+  }
+
+  const updateUsuario = async (id, payload) => {
+    /* Si el admin cambia el rol llamamos al endpoint /admin/:id,
+       de lo contrario basta con PUT /:id */
+    const url =
+      payload.rol_id !== undefined
+        ? `${API_BASE_URL}/usuarios/admin/${id}`
+        : `${API_BASE_URL}/usuarios/${id}`
+
+    await axios.put(url, payload, { headers: authHeaders })
+  }
+
+  const deleteUsuario = async (id) => {
+    await axios.delete(`${API_BASE_URL}/usuarios/${id}`, { headers: authHeaders })
+  }
+
+  /* ---------- Comprobación de sesión + carga inicial ---------- */
   useEffect(() => {
-    // Verificar si el usuario está autenticado
     const isAuthenticated = localStorage.getItem("isAuthenticated")
-    const currentUser = localStorage.getItem("currentUser")
+    const currentUser     = localStorage.getItem("currentUser")
 
     if (!isAuthenticated || !currentUser) {
       navigate("/")
@@ -167,382 +79,91 @@ const GestionUsuarios = () => {
     }
 
     setUserData(user)
+    fetchUsuarios()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate])
 
-  // Filtrar usuarios basado en el término de búsqueda
-  const filteredUsuarios = usuariosData.filter((usuario) =>
-    usuario.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  /* ---------- Filtros y handlers de formulario ---------- */
+  const filteredUsuarios = usuarios.filter((u) =>
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const handleEditChange = (e) => {
     const { name, value } = e.target
-    setEditFormData({
-      ...editFormData,
-      [name]: value,
-    })
+    setEditFormData({ ...editFormData, [name]: value })
   }
 
   const handleRoleChange = (role) => {
-    setEditFormData({
-      ...editFormData,
-      role: role,
-    })
+    setEditFormData({ ...editFormData, role })
   }
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault()
-    console.log("Guardando usuario:", editFormData)
-    // Aquí implementarías la lógica para guardar los cambios
-    setShowEditModal(false)
-    alert("Usuario actualizado exitosamente")
-  }
+    try {
+      /* Mapear a campos esperados por tu backend */
+      const payload = {
+        nombre_completo: editFormData.name,
+        email          : editFormData.email,
+        telefono       : editFormData.phone,
+        celular        : editFormData.mobile,
+      }
 
-  const handleDeleteUser = () => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar esta cuenta?")) {
-      console.log("Eliminando usuario:", selectedUser.id)
-      // Aquí implementarías la lógica para eliminar el usuario
+      /* Solo admin puede cambiar rol; lo codificamos a rol_id si es distinto */
+      const roleMap = { cliente: 1, mecanico: 2, admin: 3 }
+      if (selectedUser.role !== editFormData.role) {
+        payload.rol_id = roleMap[editFormData.role]
+      }
+
+      await updateUsuario(selectedUser.id, payload)
+      await fetchUsuarios()
       setShowEditModal(false)
-      alert("Usuario eliminado exitosamente")
+      alert("Usuario actualizado exitosamente")
+    } catch (err) {
+      console.error(err)
+      alert("Error al actualizar usuario")
     }
   }
 
-  // Estilos inline
-  const containerStyle = {
-    display: "flex",
-    minHeight: "100vh",
-    backgroundColor: "#f5f5f5",
+  const handleDeleteUser = async () => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar esta cuenta?")) return
+    try {
+      await deleteUsuario(selectedUser.id)
+      await fetchUsuarios()
+      setShowEditModal(false)
+      alert("Usuario eliminado exitosamente")
+    } catch (err) {
+      console.error(err)
+      alert("Error al eliminar usuario")
+    }
   }
 
-  const sidebarStyle = {
-    width: "280px",
-    backgroundColor: "#038C3E",
-    color: "white",
-    display: "flex",
-    flexDirection: "column",
-    padding: "0",
-  }
-
-  const logoContainerStyle = {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "2rem 1rem 1rem 1rem",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-  }
-
-  const logoCircleStyle = {
-    width: "120px",
-    height: "120px",
-    backgroundColor: "white",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
-  }
-
-  const logoStyle = {
-    width: "80px",
-    height: "80px",
-    objectFit: "contain",
-  }
-
-  const adminLabelStyle = {
-    fontSize: "1.2rem",
-    fontWeight: "600",
-    color: "white",
-    textAlign: "center",
-    marginBottom: "1rem",
-  }
-
-  const menuSectionStyle = {
-    flex: 1,
-    padding: "1rem 0",
-  }
-
-  const menuItemStyle = {
-    display: "block",
-    padding: "1rem 1.5rem",
-    color: "white",
-    textDecoration: "none",
-    fontSize: "1rem",
-    borderLeft: "4px solid transparent",
-    transition: "all 0.3s ease",
-    cursor: "pointer",
-    backgroundColor: "transparent",
-  }
-
-  const activeMenuItemStyle = {
-    ...menuItemStyle,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderLeftColor: "white",
-    fontWeight: "600",
-  }
-
-  const logoutStyle = {
-    padding: "1.5rem",
-    borderTop: "1px solid rgba(255,255,255,0.1)",
-  }
-
-  const logoutButtonStyle = {
-    width: "100%",
-    padding: "0.75rem",
-    backgroundColor: "transparent",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.3)",
-    borderRadius: "0.375rem",
-    cursor: "pointer",
-    fontSize: "1rem",
-    transition: "all 0.3s ease",
-  }
-
-  const mainContentStyle = {
-    flex: 1,
-    padding: "3rem",
-    backgroundColor: "#f8f9fa",
-  }
-
-  const headerStyle = {
-    marginBottom: "2rem",
-  }
-
-  const titleStyle = {
-    fontSize: "3rem",
-    fontWeight: "bold",
-    color: "#2D3573",
-    margin: "0 0 2rem 0",
-    letterSpacing: "0.02em",
-  }
-
-  const searchContainerStyle = {
-    position: "relative",
-    marginBottom: "2rem",
-    maxWidth: "500px",
-  }
-
-  const searchInputStyle = {
-    width: "100%",
-    padding: "1rem 1rem 1rem 3rem",
-    fontSize: "1rem",
-    border: "2px solid #4ADE80",
-    borderRadius: "25px",
-    backgroundColor: "#4ADE80",
-    color: "white",
-    outline: "none",
-  }
-
-  const searchIconStyle = {
-    position: "absolute",
-    left: "1rem",
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: "white",
-    fontSize: "1.2rem",
-  }
-
-  const usersGridStyle = {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "1rem",
-    maxWidth: "800px",
-  }
-
-  const userCardStyle = {
-    backgroundColor: "#2D3573",
-    borderRadius: "25px",
-    padding: "1rem 1.5rem",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    color: "white",
-    minHeight: "60px",
-  }
-
-  const userInfoStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.75rem",
-  }
-
-  const userIconStyle = {
-    fontSize: "1.5rem",
-  }
-
-  const userNameStyle = {
-    fontSize: "1rem",
-    fontWeight: "500",
-  }
-
-  const editButtonStyle = {
-    backgroundColor: "transparent",
-    color: "white",
-    border: "1px solid white",
-    borderRadius: "15px",
-    padding: "0.5rem 1rem",
-    fontSize: "0.875rem",
-    fontWeight: "500",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-  }
-
-  // Estilos para el modal
-  const modalOverlayStyle = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  }
-
-  const modalStyle = {
-    backgroundColor: "white",
-    borderRadius: "1rem",
-    padding: "2rem",
-    width: "100%",
-    maxWidth: "500px",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-    position: "relative",
-  }
-
-  const modalHeaderStyle = {
-    textAlign: "center",
-    marginBottom: "2rem",
-  }
-
-  const modalTitleStyle = {
-    fontSize: "1.5rem",
-    fontWeight: "bold",
-    color: "#2D3573",
-    margin: "0 0 0.5rem 0",
-  }
-
-  const modalSubtitleStyle = {
-    fontSize: "1rem",
-    color: "#6b7280",
-  }
-
-  const formGroupStyle = {
-    marginBottom: "1rem",
-  }
-
-  const inputStyle = {
-    width: "100%",
-    padding: "0.75rem",
-    border: "2px solid #d1d5db",
-    borderRadius: "0.375rem",
-    fontSize: "1rem",
-    outline: "none",
-    transition: "border-color 0.3s ease",
-  }
-
-  const roleContainerStyle = {
-    display: "flex",
-    gap: "1rem",
-    marginBottom: "2rem",
-    justifyContent: "center",
-  }
-
-  const roleOptionStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    cursor: "pointer",
-  }
-
-  const radioStyle = {
-    width: "20px",
-    height: "20px",
-    borderRadius: "50%",
-    border: "2px solid #d1d5db",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-  }
-
-  const radioSelectedStyle = {
-    ...radioStyle,
-    backgroundColor: "#2D3573",
-    borderColor: "#2D3573",
-  }
-
-  const radioSelectedAdminStyle = {
-    ...radioStyle,
-    backgroundColor: "#038C3E",
-    borderColor: "#038C3E",
-  }
-
-  const radioInnerStyle = {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    backgroundColor: "white",
-  }
-
-  const buttonContainerStyle = {
-    display: "flex",
-    gap: "1rem",
-    justifyContent: "center",
-  }
-
-  const saveButtonStyle = {
-    padding: "0.75rem 2rem",
-    backgroundColor: "#2D3573",
-    color: "white",
-    border: "none",
-    borderRadius: "0.375rem",
-    fontSize: "1rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
-  }
-
-  const deleteButtonStyle = {
-    padding: "0.75rem 2rem",
-    backgroundColor: "#6b7280",
-    color: "white",
-    border: "none",
-    borderRadius: "0.375rem",
-    fontSize: "1rem",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
-  }
-
+  /* ---------- Navegación y logout ---------- */
   const handleLogout = () => {
     localStorage.removeItem("currentUser")
     localStorage.removeItem("isAuthenticated")
+    localStorage.removeItem("token")
     navigate("/")
   }
 
   const handleMenuClick = (menu) => {
     setActiveMenu(menu)
-    if (menu === "perfil") {
-      navigate("/dashboard-admin")
-    } else if (menu === "vehiculos") {
-      navigate("/gestion-vehiculos")
-    }
+    if (menu === "perfil")    navigate("/dashboard-admin")
+    if (menu === "vehiculos") navigate("/gestion-vehiculos")
   }
 
   const handleEditUser = (usuario) => {
     setSelectedUser(usuario)
     setEditFormData({
-      name: usuario.name,
-      email: usuario.email,
-      phone: usuario.phone,
+      name  : usuario.name,
+      email : usuario.email,
+      phone : usuario.phone,
       mobile: usuario.mobile,
-      role: usuario.role,
+      role  : usuario.role,
     })
     setShowEditModal(true)
   }
 
+  /* ---------- Render ---------- */
   if (!userData) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
@@ -551,11 +172,88 @@ const GestionUsuarios = () => {
     )
   }
 
+  /* ======  ESTILOS (idénticos a los originales)  ====== */
+  const containerStyle = { display: "flex", minHeight: "100vh", backgroundColor: "#f5f5f5" }
+
+  const sidebarStyle = {
+    width: "280px", backgroundColor: "#038C3E", color: "white",
+    display: "flex", flexDirection: "column", padding: 0,
+  }
+
+  const logoContainerStyle = {
+    display: "flex", flexDirection: "column", alignItems: "center",
+    justifyContent: "center", padding: "2rem 1rem 1rem", borderBottom: "1px solid rgba(255,255,255,0.1)",
+  }
+
+  const logoCircleStyle = {
+    width: "120px", height: "120px", backgroundColor: "white",
+    borderRadius: "50%", display: "flex", alignItems: "center",
+    justifyContent: "center", padding: "1rem", marginBottom: "1rem",
+  }
+
+  const logoStyle           = { width: "80px", height: "80px", objectFit: "contain" }
+  const adminLabelStyle     = { fontSize: "1.2rem", fontWeight: 600, color: "white", textAlign: "center", marginBottom: "1rem" }
+  const menuSectionStyle    = { flex: 1, padding: "1rem 0" }
+  const menuItemStyle       = {
+    display: "block", padding: "1rem 1.5rem", color: "white", textDecoration: "none", fontSize: "1rem",
+    borderLeft: "4px solid transparent", transition: "all .3s", cursor: "pointer",
+  }
+  const activeMenuItemStyle = { ...menuItemStyle, backgroundColor: "rgba(255,255,255,0.2)", borderLeftColor: "white", fontWeight: 600 }
+  const logoutStyle         = { padding: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.1)" }
+  const logoutButtonStyle   = {
+    width: "100%", padding: ".75rem", backgroundColor: "transparent", color: "white",
+    border: "1px solid rgba(255,255,255,0.3)", borderRadius: ".375rem", cursor: "pointer", fontSize: "1rem", transition: "all .3s",
+  }
+
+  const mainContentStyle = { flex: 1, padding: "3rem", backgroundColor: "#f8f9fa" }
+  const headerStyle      = { marginBottom: "2rem" }
+  const titleStyle       = { fontSize: "3rem", fontWeight: "bold", color: "#2D3573", margin: "0 0 2rem", letterSpacing: ".02em" }
+  const searchContainerStyle = { position: "relative", marginBottom: "2rem", maxWidth: "500px" }
+  const searchInputStyle     = {
+    width: "100%", padding: "1rem 1rem 1rem 3rem", fontSize: "1rem",
+    border: "2px solid #4ADE80", borderRadius: "25px", backgroundColor: "#4ADE80",
+    color: "white", outline: "none",
+  }
+  const searchIconStyle   = { position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "white", fontSize: "1.2rem" }
+  const usersGridStyle    = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem", maxWidth: "800px" }
+  const userCardStyle     = { backgroundColor: "#2D3573", borderRadius: "25px", padding: "1rem 1.5rem", display: "flex",
+                              alignItems: "center", justifyContent: "space-between", color: "white", minHeight: "60px" }
+  const userInfoStyle     = { display: "flex", alignItems: "center", gap: ".75rem" }
+  const userIconStyle     = { fontSize: "1.5rem" }
+  const userNameStyle     = { fontSize: "1rem", fontWeight: 500 }
+  const editButtonStyle   = {
+    backgroundColor: "transparent", color: "white", border: "1px solid white", borderRadius: "15px",
+    padding: ".5rem 1rem", fontSize: ".875rem", fontWeight: 500, cursor: "pointer", transition: "all .3s",
+  }
+
+  /* ---- estilos del modal: igual al original ---- */
+  const modalOverlayStyle       = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,.7)",
+                                    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }
+  const modalStyle              = { backgroundColor: "white", borderRadius: "1rem", padding: "2rem", width: "100%",
+                                    maxWidth: "500px", boxShadow: "0 25px 50px -12px rgba(0,0,0,.25)", position: "relative" }
+  const modalHeaderStyle        = { textAlign: "center", marginBottom: "2rem" }
+  const modalTitleStyle         = { fontSize: "1.5rem", fontWeight: "bold", color: "#2D3573", margin: "0 0 .5rem" }
+  const modalSubtitleStyle      = { fontSize: "1rem", color: "#6b7280" }
+  const formGroupStyle          = { marginBottom: "1rem" }
+  const inputStyle              = { width: "100%", padding: ".75rem", border: "2px solid #d1d5db",
+                                    borderRadius: ".375rem", fontSize: "1rem", outline: "none", transition: "border-color .3s" }
+  const roleContainerStyle      = { display: "flex", gap: "1rem", marginBottom: "2rem", justifyContent: "center" }
+  const roleOptionStyle         = { display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer" }
+  const radioStyle              = { width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #d1d5db",
+                                    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }
+  const radioSelectedStyle      = { ...radioStyle, backgroundColor: "#2D3573", borderColor: "#2D3573" }
+  const radioSelectedAdminStyle = { ...radioStyle, backgroundColor: "#038C3E", borderColor: "#038C3E" }
+  const radioInnerStyle         = { width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "white" }
+  const buttonContainerStyle    = { display: "flex", gap: "1rem", justifyContent: "center" }
+  const saveButtonStyle         = { padding: ".75rem 2rem", backgroundColor: "#2D3573", color: "white", border: "none",
+                                    borderRadius: ".375rem", fontSize: "1rem", fontWeight: 600, cursor: "pointer", transition: "background-color .3s" }
+  const deleteButtonStyle       = { padding: ".75rem 2rem", backgroundColor: "#6b7280", color: "white", border: "none",
+                                    borderRadius: ".375rem", fontSize: "1rem", fontWeight: 600, cursor: "pointer", transition: "background-color .3s" }
+
   return (
     <div style={containerStyle}>
-      {/* Sidebar */}
+      {/* ---------- SIDEBAR ---------- */}
       <div style={sidebarStyle}>
-        {/* Logo */}
         <div style={logoContainerStyle}>
           <div style={logoCircleStyle}>
             <img
@@ -563,58 +261,37 @@ const GestionUsuarios = () => {
               alt="AutoCare Manager"
               style={logoStyle}
               onError={(e) => {
-                e.target.onerror = null
-                e.target.src =
-                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiByeD0iNDAiIGZpbGw9IiMyRDM1NzMiLz4KPHRleHQgeD0iNDAiIHk9IjQ1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BQzwvdGV4dD4KPC9zdmc+"
+                e.currentTarget.onerror = null
+                e.currentTarget.src =
+                  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIHJ4PSI0MCIgZmlsbD0iIzJEMzU3MyIvPjx0ZXh0IHg9IjQwIiB5PSI0NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjI0IiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QUM8L3RleHQ+PC9zdmc+"
               }}
             />
           </div>
           <div style={adminLabelStyle}>Admin</div>
         </div>
 
-        {/* Menu */}
         <div style={menuSectionStyle}>
-          <div
-            style={activeMenu === "perfil" ? activeMenuItemStyle : menuItemStyle}
-            onClick={() => handleMenuClick("perfil")}
-          >
-            Menu Perfil
-          </div>
-
-          <div
-            style={activeMenu === "usuarios" ? activeMenuItemStyle : menuItemStyle}
-            onClick={() => handleMenuClick("usuarios")}
-          >
-            usuarios
-          </div>
-
-          <div
-            style={activeMenu === "vehiculos" ? activeMenuItemStyle : menuItemStyle}
-            onClick={() => handleMenuClick("vehiculos")}
-          >
-            vehiculos
-          </div>
+          <div style={activeMenu==="perfil"   ? activeMenuItemStyle:menuItemStyle} onClick={()=>handleMenuClick("perfil")}>Menu Perfil</div>
+          <div style={activeMenu==="usuarios" ? activeMenuItemStyle:menuItemStyle} onClick={()=>handleMenuClick("usuarios")}>usuarios</div>
+          <div style={activeMenu==="vehiculos"? activeMenuItemStyle:menuItemStyle} onClick={()=>handleMenuClick("vehiculos")}>vehiculos</div>
         </div>
 
-        {/* Logout */}
         <div style={logoutStyle}>
           <button
             style={logoutButtonStyle}
             onClick={handleLogout}
-            onMouseOver={(e) => (e.target.style.backgroundColor = "rgba(255,255,255,0.1)")}
-            onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
+            onMouseOver={e=>e.currentTarget.style.backgroundColor="rgba(255,255,255,.1)"}
+            onMouseOut ={e=>e.currentTarget.style.backgroundColor="transparent"}
           >
             Cerrar sesion
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* ---------- CONTENIDO PRINCIPAL ---------- */}
       <div style={mainContentStyle}>
         <div style={headerStyle}>
           <h1 style={titleStyle}>GESTION DE USUARIOS</h1>
-
-          {/* Search Bar */}
           <div style={searchContainerStyle}>
             <div style={searchIconStyle}>🔍</div>
             <input
@@ -627,23 +304,19 @@ const GestionUsuarios = () => {
           </div>
         </div>
 
-        {/* Users Grid */}
+        {/* GRID DE USUARIOS */}
         <div style={usersGridStyle}>
-          {filteredUsuarios.map((usuario) => (
-            <div key={usuario.id} style={userCardStyle}>
+          {filteredUsuarios.map((u) => (
+            <div key={u.id} style={userCardStyle}>
               <div style={userInfoStyle}>
                 <span style={userIconStyle}>👤</span>
-                <span style={userNameStyle}>{usuario.name}</span>
+                <span style={userNameStyle}>{u.name}</span>
               </div>
               <button
                 style={editButtonStyle}
-                onClick={() => handleEditUser(usuario)}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "rgba(255,255,255,0.1)"
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "transparent"
-                }}
+                onClick={() => handleEditUser(u)}
+                onMouseOver={(e)=>e.currentTarget.style.backgroundColor="rgba(255,255,255,.1)"}
+                onMouseOut={(e)=>e.currentTarget.style.backgroundColor="transparent"}
               >
                 EDITAR
               </button>
@@ -652,102 +325,74 @@ const GestionUsuarios = () => {
         </div>
       </div>
 
-      {/* Modal de Edición de Usuario */}
+      {/* ---------- MODAL EDICIÓN ---------- */}
       {showEditModal && (
-        <div style={modalOverlayStyle} onClick={() => setShowEditModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={modalOverlayStyle} onClick={()=>setShowEditModal(false)}>
+          <div style={modalStyle} onClick={(e)=>e.stopPropagation()}>
             <div style={modalHeaderStyle}>
               <h2 style={modalTitleStyle}>EDITAR USUARIO</h2>
-              <p style={modalSubtitleStyle}>Editar perfil de un usuario</p>
+              <p  style={modalSubtitleStyle}>Editar perfil de un usuario</p>
             </div>
 
             <form onSubmit={handleEditSubmit}>
               <div style={formGroupStyle}>
                 <input
-                  type="text"
-                  name="name"
-                  value={editFormData.name}
-                  onChange={handleEditChange}
-                  style={inputStyle}
-                  placeholder="Nombre completo"
-                  required
+                  type="text" name="name" value={editFormData.name}
+                  onChange={handleEditChange} style={inputStyle}
+                  placeholder="Nombre completo" required
                 />
               </div>
-
               <div style={formGroupStyle}>
                 <input
-                  type="email"
-                  name="email"
-                  value={editFormData.email}
-                  onChange={handleEditChange}
-                  style={inputStyle}
-                  placeholder="Email"
-                  required
+                  type="email" name="email" value={editFormData.email}
+                  onChange={handleEditChange} style={inputStyle}
+                  placeholder="Email" required
                 />
               </div>
-
               <div style={formGroupStyle}>
                 <input
-                  type="tel"
-                  name="phone"
-                  value={editFormData.phone}
-                  onChange={handleEditChange}
-                  style={inputStyle}
+                  type="tel" name="phone" value={editFormData.phone}
+                  onChange={handleEditChange} style={inputStyle}
                   placeholder="Teléfono"
                 />
               </div>
-
               <div style={formGroupStyle}>
                 <input
-                  type="tel"
-                  name="mobile"
-                  value={editFormData.mobile}
-                  onChange={handleEditChange}
-                  style={inputStyle}
+                  type="tel" name="mobile" value={editFormData.mobile}
+                  onChange={handleEditChange} style={inputStyle}
                   placeholder="Celular"
                 />
               </div>
 
-              {/* Role Selection */}
+              {/* Roles */}
               <div style={roleContainerStyle}>
-                <div style={roleOptionStyle} onClick={() => handleRoleChange("cliente")}>
-                  <div style={editFormData.role === "cliente" ? radioSelectedStyle : radioStyle}>
-                    {editFormData.role === "cliente" && <div style={radioInnerStyle} />}
+                {["cliente","mecanico","admin"].map(r=>(
+                  <div key={r} style={roleOptionStyle} onClick={()=>handleRoleChange(r)}>
+                    <div style={
+                      editFormData.role===r
+                        ? (r==="admin"?radioSelectedAdminStyle:radioSelectedStyle)
+                        : radioStyle
+                    }>
+                      {editFormData.role===r && <div style={radioInnerStyle}/>}
+                    </div>
+                    <span>{r.charAt(0).toUpperCase()+r.slice(1)}</span>
                   </div>
-                  <span>Cliente</span>
-                </div>
-
-                <div style={roleOptionStyle} onClick={() => handleRoleChange("mecanico")}>
-                  <div style={editFormData.role === "mecanico" ? radioSelectedStyle : radioStyle}>
-                    {editFormData.role === "mecanico" && <div style={radioInnerStyle} />}
-                  </div>
-                  <span>Mecanico</span>
-                </div>
-
-                <div style={roleOptionStyle} onClick={() => handleRoleChange("admin")}>
-                  <div style={editFormData.role === "admin" ? radioSelectedAdminStyle : radioStyle}>
-                    {editFormData.role === "admin" && <div style={radioInnerStyle} />}
-                  </div>
-                  <span>Admin</span>
-                </div>
+                ))}
               </div>
 
-              {/* Buttons */}
               <div style={buttonContainerStyle}>
-                <button
-                  type="submit"
+                <button type="submit"
                   style={saveButtonStyle}
-                  onMouseOver={(e) => (e.target.style.backgroundColor = "#1e2550")}
-                  onMouseOut={(e) => (e.target.style.backgroundColor = "#2D3573")}
+                  onMouseOver={e=>e.currentTarget.style.backgroundColor="#1e2550"}
+                  onMouseOut={e=>e.currentTarget.style.backgroundColor="#2D3573"}
                 >
                   GUARDAR
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   style={deleteButtonStyle}
                   onClick={handleDeleteUser}
-                  onMouseOver={(e) => (e.target.style.backgroundColor = "#4b5563")}
-                  onMouseOut={(e) => (e.target.style.backgroundColor = "#6b7280")}
+                  onMouseOver={e=>e.currentTarget.style.backgroundColor="#4b5563"}
+                  onMouseOut={e=>e.currentTarget.style.backgroundColor="#6b7280"}
                 >
                   Eliminar cuenta
                 </button>
