@@ -71,7 +71,7 @@ const Login = () => {
       if (!meRes.ok) throw new Error("No se pudo obtener el perfil");
   
       const perfil = await meRes.json();  // {nombre_completo, email, telefono, celular, rol_id}
-      console.log(perfil);
+      //console.log(perfil);
       /* 4️⃣  GUARDA currentUser COMPLETO ───────────────── */
       localStorage.setItem("currentUser", JSON.stringify({
         id: perfil.id,

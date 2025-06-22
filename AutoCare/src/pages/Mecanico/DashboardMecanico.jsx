@@ -37,7 +37,7 @@ const DashboardMecanico = () => {
       if (user.rol_id === 3) {
         navigate("/dashboard-admin")
       } else {
-        console.log(user.role)
+        
         navigate("/dashboard-cliente")
         
       }
