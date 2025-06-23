@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+const fmt = iso =>
+  iso ? new Date(iso).toLocaleDateString("es-ES", { timeZone: "UTC" }) : "";
 
 const ServiciosCliente = () => {
   const [activeMenu, setActiveMenu] = useState("vehiculos")
@@ -349,7 +351,6 @@ const ServiciosCliente = () => {
           &lt; {vehiculoData.marca} {vehiculoData.modelo}
         </div>
 
-        {/* Header */}
         <div style={headerStyle}>
           <h1 style={titleStyle}>Reparación #{reparacionData.id}</h1>
           <p style={subtitleStyle}>
@@ -357,9 +358,10 @@ const ServiciosCliente = () => {
           </p>
           <p style={subtitleStyle}>Placa: {vehiculoData.placa}</p>
 
+          {/* 🔧 usa los nombres correctos + formateo */}
           <div style={infoRowStyle}>
-            <span>Fecha de Inicio: {reparacionData.fechaInicio}</span>
-            <span>Fecha de Finalización: {reparacionData.fechaFinalizacion}</span>
+            <span>Fecha de Inicio: {fmt(reparacionData.fecha_inicio)}</span>
+            <span>Fecha de Finalización: {fmt(reparacionData.fecha_fin)}</span>
           </div>
         </div>
 
