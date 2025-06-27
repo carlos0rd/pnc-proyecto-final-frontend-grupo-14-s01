@@ -327,7 +327,7 @@ useEffect(() => {
           {vehiculosData.map((vehiculo) => (
             <div key={vehiculo.id} style={vehiculoCardStyle}>
               <img
-                src={vehiculo.imagen || "/placeholder.svg"}
+                src={vehiculo.imagen? `${import.meta.env.VITE_API_URL}${vehiculo.imagen}`: "/placeholder.svg"}
                 alt={`${vehiculo.marca} ${vehiculo.modelo}`}
                 style={vehiculoImageStyle}
               />
