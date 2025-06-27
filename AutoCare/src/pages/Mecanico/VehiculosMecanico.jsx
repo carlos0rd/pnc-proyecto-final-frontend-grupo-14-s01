@@ -3,6 +3,7 @@
 import axios from "axios"; 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { ok, warn, error as errorSwal, confirm } from "../../utils/alerts"
 
 const VehiculosMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
@@ -126,18 +127,16 @@ const VehiculosMecanico = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    backgroundColor: "white",
     borderRadius: "50%",
+    overflow: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 
@@ -364,13 +363,28 @@ const VehiculosMecanico = () => {
     setShowDropdown(null)
   }
 
-  const handleDeleteVehicle = (vehiculoId) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este vehículo?")) {
-      console.log(`Eliminando vehículo ${vehiculoId}`)
-      alert("Vehículo eliminado exitosamente")
-    }
+  const handleDeleteVehicle = async (vehiculoId) => {
+  const okUser = await confirm("¿Eliminar vehículo?", "Esta acción es irreversible")
+  if (!okUser) return
+
+  try {
+    const token = localStorage.getItem("token")
+    await axios.delete(
+      `${import.meta.env.VITE_API_URL}/vehiculos/${vehiculoId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    // elimina en la UI sin recargar
+    setVehiculos(prev => prev.filter(v => v.id !== vehiculoId))
+    await ok("Vehículo eliminado", "Se eliminó correctamente")
+  } catch (err) {
+    console.error(err)
+    errorSwal("No se pudo eliminar",
+              err.response?.data?.error || "Intenta más tarde")
+  } finally {
     setShowDropdown(null)
   }
+}
 
   const handleAddChange = (e) => {
     const { name, value } = e.target
@@ -382,6 +396,10 @@ const VehiculosMecanico = () => {
 
 const handleAddSubmit = async (e) => {
   e.preventDefault();
+
+  if(!addFormData.modelo.trim() || !addFormData.marca.trim()) {
+    return warn("Campos obligatorios", "Modelo y marca no pueden quedar vacíos")
+  }
 
   try {
     const token = localStorage.getItem("token");
@@ -416,10 +434,10 @@ const handleAddSubmit = async (e) => {
     });
     setFile(null);
     setShowAddModal(false);
-    alert("Vehículo agregado exitosamente");
+    await ok("Vehículo agregado", "Se registró correctamente")
   } catch (err) {
-    console.error(err);
-    alert("Error al registrar vehículo");
+    console.error(err)
+    errorSwal("Error al registrar", err.response?.data?.message || "Intenta más tarde")
   }
 };
 
@@ -475,12 +493,12 @@ const handleAddSubmit = async (e) => {
         { headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` } }
       );
       
-      alert("Vehículo actualizado exitosamente");
+      await ok("Vehículo actualizado", "Los cambios se guardaron")
       setShowEditModal(false);
       fetchVehiculos();          // vuelve a pedir la lista → sin recargar la página
     } catch (err) {
-      alert("Error al guardar cambios");
-      console.error(err);
+      console.error(err)
+    errorSwal("Error al guardar cambios", err.response?.data?.message || "Intenta más tarde")
     }
   };
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
+import { ok, warn, error as errorSwal, confirm } from "../../utils/alerts"
 
 const GestionVehiculos = () => {
   /* ---------- ESTADOS ---------- */
@@ -76,6 +77,15 @@ const GestionVehiculos = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
+
+    if(
+      !editFormData.modelo.trim() ||
+      !editFormData.marca.trim()  ||
+      !editFormData.año.trim()
+    ) {
+      return warn("Campos obligatorios", "Modelo, marca y año no pueden quedar vacíos")
+    }
+
     try {
       const token = localStorage.getItem("token")
       await axios.put(
@@ -89,29 +99,32 @@ const GestionVehiculos = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } },
       )
-      alert("Vehículo actualizado correctamente")
+      await ok("Vehículo actualizado", "Los cambios se guardaron correctamente")
       setShowEditModal(false)
       fetchVehiculos(token)
     } catch (err) {
       console.error("Error al actualizar:", err)
-      alert("Error al guardar cambios")
+      errorSwal("Error al actualizar", 
+                err.response?.data?.message || "Intenta más tarde")
     }
   }
 
   const handleDeleteVehiculo = async () => {
-    if (!window.confirm("¿Eliminar este vehículo?")) return
+    const aceptado = await confirm("¿Eliminar este vehículo?", "Esta acción es irreversible")
+    if (!aceptado) return
     try {
       const token = localStorage.getItem("token")
       await axios.delete(
         `http://localhost:3000/vehiculos/${selectedVehiculo.id}`,
         { headers: { Authorization: `Bearer ${token}` } },
       )
-      alert("Vehículo eliminado")
+      await ok("Vehículo eliminado", "El vehículo se eliminó correctamente")
       setShowEditModal(false)
       fetchVehiculos(token)
     } catch (err) {
-      console.error("Error al eliminar:", err)
-      alert("Error al eliminar vehículo")
+      console.error(err)
+      errorSwal("No se pudo eliminar",
+                err.response?.data?.message || "Error desconocido")
     }
   }
 
@@ -129,18 +142,17 @@ const GestionVehiculos = () => {
   /* ---------- MOSTRAR CARGANDO ---------- */
   if (!userData) return <div style={{textAlign:"center",marginTop:"4rem"}}>Cargando...</div>
 
-  /* ---------- ESTILOS (idénticos al original) ---------- */
   const containerStyle = { display:"flex", minHeight:"100vh", backgroundColor:"#f5f5f5" }
   const sidebarStyle   = { width:"280px", backgroundColor:"#038C3E", color:"white", display:"flex", flexDirection:"column" }
   const logoContainerStyle = { display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"2rem 1rem 1rem", borderBottom:"1px solid rgba(255,255,255,0.1)" }
-  const logoCircleStyle    = { width:"120px", height:"120px", backgroundColor:"white", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem", marginBottom:"1rem" }
-  const logoStyle          = { width:"80px", height:"80px", objectFit:"contain" }
+  const logoCircleStyle    = { width: "120px",height: "120px",borderRadius: "50%",overflow: "hidden",display: "flex",alignItems: "center",justifyContent: "center", }
+  const logoStyle          = { width:"100%", height:"100%", objectFit:"contain" }
   const adminLabelStyle    = { fontSize:"1.2rem", fontWeight:"600", textAlign:"center", marginBottom:"1rem" }
   const menuSectionStyle   = { flex:1, padding:"1rem 0" }
   const menuItemStyle      = { display:"block", padding:"1rem 1.5rem", color:"white", fontSize:"1rem", borderLeft:"4px solid transparent", cursor:"pointer" }
   const activeMenuItemStyle= { ...menuItemStyle, backgroundColor:"rgba(255,255,255,0.2)", borderLeft:"4px solid white", fontWeight:"600" }
   const logoutStyle        = { padding:"1.5rem", borderTop:"1px solid rgba(255,255,255,0.1)" }
-  const logoutButtonStyle  = { width:"100%", padding:"0.75rem", backgroundColor:"transparent", color:"white", border:"1px solid rgba(255,255,255,0.3)", borderRadius:"0.375rem", cursor:"pointer" }
+  const logoutButtonStyle  = { width:"100%", padding:"0.75rem", backgroundColor:"transparent", color:"white", border:"1px solid rgba(255,255,255,0.3)", borderRadius:"0.375rem", cursor:"pointer", fontSize: "1rem",  transition: "all 0.3s ease",}
 
   const mainContentStyle   = { flex:1, padding:"3rem", backgroundColor:"#f8f9fa" }
   const headerStyle        = { marginBottom:"2rem" }
@@ -178,7 +190,16 @@ const GestionVehiculos = () => {
           <div style={activeMenu==="usuarios" ? activeMenuItemStyle:menuItemStyle} onClick={()=>handleMenuClick("usuarios")}>usuarios</div>
           <div style={activeMenu==="vehiculos"? activeMenuItemStyle:menuItemStyle} onClick={()=>handleMenuClick("vehiculos")}>vehiculos</div>
         </div>
-        <div style={logoutStyle}><button style={logoutButtonStyle} onClick={handleLogout}>Cerrar sesion</button></div>
+        <div style={logoutStyle}>
+          <button 
+            style={logoutButtonStyle} 
+            onClick={handleLogout} 
+            onMouseOver={(e) => (e.target.style.backgroundColor = "rgba(255,255,255,0.1)")}
+            onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </div>
 
       {/* Main */}

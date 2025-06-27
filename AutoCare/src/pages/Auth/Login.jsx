@@ -15,35 +15,6 @@ const Login = () => {
 
   const navigate = useNavigate()
 
-  // Credenciales quemadas para testing
-  const validCredentials = [
-    {
-      email: "juan@autocare.com",
-      password: "123456",
-      name: "Juan Tralalero",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 5555-5555",
-      role: "client",
-    },
-    {
-      email: "admin@autocare.com",
-      password: "admin123",
-      name: "Juan El Admin",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 5555-5555",
-      role: "admin",
-    },
-    {
-      email: "mecanico@autocare.com",
-      password: "meca123",
-      name: "Juan El Mecanico",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 5555-5555",
-      role: "mecanico",
-    },
-  ]
-
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -290,16 +261,7 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} style={formStyle}>
-            <p style={labelStyle}>Ingresar credenciales para iniciar sesión</p>
-
-            {/* Credenciales de prueba */}
-            <div style={credentialsStyle}>
-              <strong>Credenciales de prueba:</strong>
-              <br />📧 juan@autocare.com | 🔑 123456 (Cliente)
-              <br />📧 admin@autocare.com | 🔑 admin123 (Admin)
-              <br />📧 mecanico@autocare.com | 🔑 meca123 (Mecánico)
-            </div>
-                
+            <p style={labelStyle}>Ingresar credenciales para iniciar sesión</p>   
             <input
               type="email"
               placeholder="Email"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
 const DashboardMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("perfil")
@@ -64,6 +65,10 @@ const DashboardMecanico = () => {
   const handleEditSubmit = (e) => {
     e.preventDefault()
 
+    if(!editFormData.name.trim() || !editFormData.email.trim()){
+      return warn("Campos obligatorios", "Nombre y correo no pueden quedar vaciós")
+    }
+
     // Actualizar datos del usuario
     const updatedUser = {
       ...userData,
@@ -81,33 +86,39 @@ const DashboardMecanico = () => {
 
     // Cerrar modal
     setShowEditModal(false)
+
+    ok("Perfil actualiazado", "Los cambios se guardaron correctamente")
   }
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault()
 
     if (newPassword.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres")
-      return
+     return warn("Contraseña muy corta", "Debe tener al menos 6 caracteres")
     }
 
     // Actualizar contraseña del usuario
-    const updatedUser = {
-      ...userData,
-      password: newPassword,
+    try {
+      const updatedUser = {
+        ...userData,
+        password: newPassword,
+      }
+
+      // Guardar en localStorage
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser))
+
+      // Actualizar estado
+      setUserData(updatedUser)
+
+      // Limpiar campo y cerrar modal
+      setNewPassword("")
+      setShowPasswordModal(false)
+      ok("Contraseña cambiada", "Tu nueva contraseña ya está activa")
+    } catch(err) {
+      console.error(err)
+      errorSwal("Error al cambiar contraseña",
+                err.message || "Intenta más tarde")
     }
-
-    // Guardar en localStorage
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser))
-
-    // Actualizar estado
-    setUserData(updatedUser)
-
-    // Limpiar campo y cerrar modal
-    setNewPassword("")
-    setShowPasswordModal(false)
-
-    alert("Contraseña cambiada exitosamente")
   }
 
   const handleMenuClick = (menu) => {
@@ -146,18 +157,16 @@ const DashboardMecanico = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    backgroundColor: "white",
     borderRadius: "50%",
+    overflow:"hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 

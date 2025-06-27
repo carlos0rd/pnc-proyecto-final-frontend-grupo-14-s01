@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import axios from "axios"; 
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
 const ServiciosClienteDesdeMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
@@ -426,6 +427,10 @@ const ServiciosClienteDesdeMecanico = () => {
   const handleEditSubmit = async (e) => {
   e.preventDefault();
 
+  if(!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
+    return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
+  }
+
     try {
       const token = localStorage.getItem("token");
 
@@ -451,10 +456,10 @@ const ServiciosClienteDesdeMecanico = () => {
       );
 
       setShowEditModal(false);
-      alert("Servicio actualizado correctamente");
+      await ok("Servicio actualizado", "Los cambios se guardaron correctamente");
     } catch (err) {
-      console.error(err);
-      alert("Error al actualizar el servicio");
+      console.error(err)
+      errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
     }
   };
 
@@ -463,6 +468,11 @@ const ServiciosClienteDesdeMecanico = () => {
 
     const handleAddSubmit = async (e) => {
       e.preventDefault();
+
+      if(!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
+        return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
+      }
+
       try {
         const token = localStorage.getItem("token");
         await axios.post(
@@ -485,10 +495,10 @@ const ServiciosClienteDesdeMecanico = () => {
           fecha_fin: "",
           precio: "",
         });
-        alert("Servicio agregado correctamente");
+        await ok("Servicio agregado", "Se regsitró correctamente");
       } catch (err) {
-        console.error(err);
-        alert("Error al agregar el servicio");
+        console.error(err)
+        errorSwal("Error al agregar", err.response?.data?.message || "Intenta más tarde")
       }
     };
 

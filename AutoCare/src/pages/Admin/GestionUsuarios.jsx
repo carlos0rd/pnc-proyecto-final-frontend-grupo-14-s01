@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
+import { ok, warn, error as errorSwal, confirm } from "../../utils/alerts"
 
 /* Cambia esta URL a la de tu backend.
    También puedes exponer VITE_API_URL en tu .env y quedarte solo con la primera parte */
@@ -99,6 +100,11 @@ const GestionUsuarios = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
+
+    if (!editFormData.name.trim() || !editFormData.email.trim()){
+      return warn("Campos obligatorios", "Nombre y correo no puede estar vacíos")
+    }
+
     try {
       /* Mapear a campos esperados por tu backend */
       const payload = {
@@ -117,23 +123,26 @@ const GestionUsuarios = () => {
       await updateUsuario(selectedUser.id, payload)
       await fetchUsuarios()
       setShowEditModal(false)
-      alert("Usuario actualizado exitosamente")
+      await ok("Usuario actualizado", "Los cambios se guardaron correctamente")
     } catch (err) {
       console.error(err)
-      alert("Error al actualizar usuario")
+      errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
     }
   }
 
   const handleDeleteUser = async () => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar esta cuenta?")) return
+    const aceptado = await confirm("¿Eliminar usuario?","Esta acción es irreversible")
+    if (!aceptado) return
+
     try {
       await deleteUsuario(selectedUser.id)
       await fetchUsuarios()
       setShowEditModal(false)
-      alert("Usuario eliminado exitosamente")
+
+      await ok("Usuario eliminado", "La cuenta se eliminó correctamente")        // ✔ éxito
     } catch (err) {
       console.error(err)
-      alert("Error al eliminar usuario")
+      errorSwal("No se pudo eliminar", err.response?.data?.message || "Error desconocido") // ❌ error
     }
   }
 
@@ -172,7 +181,6 @@ const GestionUsuarios = () => {
     )
   }
 
-  /* ======  ESTILOS (idénticos a los originales)  ====== */
   const containerStyle = { display: "flex", minHeight: "100vh", backgroundColor: "#f5f5f5" }
 
   const sidebarStyle = {
@@ -186,12 +194,16 @@ const GestionUsuarios = () => {
   }
 
   const logoCircleStyle = {
-    width: "120px", height: "120px", backgroundColor: "white",
-    borderRadius: "50%", display: "flex", alignItems: "center",
-    justifyContent: "center", padding: "1rem", marginBottom: "1rem",
+    width: "120px",
+    height: "120px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   }
 
-  const logoStyle           = { width: "80px", height: "80px", objectFit: "contain" }
+  const logoStyle           = { width: "100%", height: "100%", objectFit: "contain" }
   const adminLabelStyle     = { fontSize: "1.2rem", fontWeight: 600, color: "white", textAlign: "center", marginBottom: "1rem" }
   const menuSectionStyle    = { flex: 1, padding: "1rem 0" }
   const menuItemStyle       = {
@@ -202,7 +214,7 @@ const GestionUsuarios = () => {
   const logoutStyle         = { padding: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.1)" }
   const logoutButtonStyle   = {
     width: "100%", padding: ".75rem", backgroundColor: "transparent", color: "white",
-    border: "1px solid rgba(255,255,255,0.3)", borderRadius: ".375rem", cursor: "pointer", fontSize: "1rem", transition: "all .3s",
+    border: "1px solid rgba(255,255,255,0.3)", borderRadius: ".375rem", cursor: "pointer", fontSize: "1rem", transition: "all 0.3s ease",
   }
 
   const mainContentStyle = { flex: 1, padding: "3rem", backgroundColor: "#f8f9fa" }
@@ -283,7 +295,7 @@ const GestionUsuarios = () => {
             onMouseOver={e=>e.currentTarget.style.backgroundColor="rgba(255,255,255,.1)"}
             onMouseOut ={e=>e.currentTarget.style.backgroundColor="transparent"}
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </div>

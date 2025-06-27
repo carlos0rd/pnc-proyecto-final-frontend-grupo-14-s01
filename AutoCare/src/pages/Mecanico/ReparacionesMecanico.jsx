@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import axios from "axios" 
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
 const ReparacionesMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
@@ -116,18 +117,16 @@ const ReparacionesMecanico = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    backgroundColor: "white",
     borderRadius: "50%",
+    overflowY: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 
@@ -321,7 +320,12 @@ const ReparacionesMecanico = () => {
 
     const handleAddSubmit = async (e) => {
       e.preventDefault();
-          try {
+
+      if(!editFormData.tipo_reparacion.trim() || !editFormData.descripcion.trim()) {
+        return warn("Campos obligatorios", "Tipo y descripción no púeden quedar vaciós")
+      }
+
+      try {
         const token = localStorage.getItem("token");
 
         await axios.post(
@@ -349,10 +353,10 @@ const ReparacionesMecanico = () => {
           precio: "",
           status: "Pendiente",
         });
-        alert("Reparación registrada correctamente");
+        await ok("Reparación registrada", "Se guardó correctamente")
       } catch (err) {
-        console.error(err);
-        alert("Error al registrar la reparación");
+        console.error(err)
+        errorSwal("Error al registrar", err.response?.data?.message || "Intenta más tarde")
       }
     };
 
@@ -374,6 +378,11 @@ const handleEditChange = ({ target }) =>
 
 const handleEditSubmit = async (e) => {
   e.preventDefault();
+
+  if(!editFormData.tipo_reparacion.trim() || !editFormData.descripcion.trim()) {
+    return warn("Campos obligatorios", "Tipo y descripción no pueden quedar vaciós")
+  }
+
   try {
     const token = localStorage.getItem("token");
     await axios.put(
@@ -392,9 +401,10 @@ const handleEditSubmit = async (e) => {
       )
     );
     setShowEditModal(false);
+    await ok("Reparación actualizada", "Los cambios se guardaron")
   } catch (err) {
-    console.error(err);
-    alert("Error al actualizar la reparación");
+    console.error(err)
+    errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
   }
 };
 
