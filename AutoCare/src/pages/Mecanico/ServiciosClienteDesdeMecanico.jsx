@@ -109,18 +109,16 @@ const ServiciosClienteDesdeMecanico = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    backgroundColor: "white",
     borderRadius: "50%",
+    overflow: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 
@@ -469,7 +467,7 @@ const ServiciosClienteDesdeMecanico = () => {
     const handleAddSubmit = async (e) => {
       e.preventDefault();
 
-      if(!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
+      if(!addFormData.nombre_servicio.trim() || !addFormData.descripcion.trim()) {
         return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
       }
 

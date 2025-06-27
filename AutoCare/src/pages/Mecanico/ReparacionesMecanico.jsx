@@ -321,7 +321,7 @@ const ReparacionesMecanico = () => {
     const handleAddSubmit = async (e) => {
       e.preventDefault();
 
-      if(!editFormData.tipo_reparacion.trim() || !editFormData.descripcion.trim()) {
+      if(!addFormData.tipo_reparacion.trim() || !addFormData.descripcion.trim()) {
         return warn("Campos obligatorios", "Tipo y descripción no púeden quedar vaciós")
       }
 
