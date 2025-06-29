@@ -9,7 +9,7 @@ const GestionVehiculos = () => {
   /* ---------- ESTADOS ---------- */
   const [activeMenu, setActiveMenu] = useState("vehiculos")
   const [userData, setUserData] = useState(null)
-  const [vehiculos, setVehiculos] = useState([])     // ← ahora vienen del backend
+  const [vehiculos, setVehiculos] = useState([])   
   const [searchTerm, setSearchTerm] = useState("")
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedVehiculo, setSelectedVehiculo] = useState(null)
@@ -93,7 +93,7 @@ const GestionVehiculos = () => {
         {
           modelo: editFormData.modelo,
           marca : editFormData.marca,
-          anio  : editFormData.año,   // ← campo anio para backend
+          anio  : editFormData.año,   
           color : editFormData.color,
           placa : editFormData.placa,
         },

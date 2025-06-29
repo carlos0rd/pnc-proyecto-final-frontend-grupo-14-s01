@@ -5,14 +5,12 @@ import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import { ok, warn, error as errorSwal, confirm } from "../../utils/alerts"
 
-/* Cambia esta URL a la de tu backend.
-   También puedes exponer VITE_API_URL en tu .env y quedarte solo con la primera parte */
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 const GestionUsuarios = () => {
   const [activeMenu, setActiveMenu]      = useState("usuarios")
   const [userData, setUserData]          = useState(null)
-  const [usuarios, setUsuarios]          = useState([])         // ← lista real desde BD
+  const [usuarios, setUsuarios]          = useState([])         
   const [searchTerm, setSearchTerm]      = useState("")
   const [showEditModal, setShowEditModal]= useState(false)
   const [selectedUser, setSelectedUser]  = useState(null)
@@ -26,13 +24,12 @@ const GestionUsuarios = () => {
   const navigate = useNavigate()
 
   /* ---------- Helpers de API ---------- */
-  const token = localStorage.getItem("token")            // tu middleware JWT lo exige
+  const token = localStorage.getItem("token")            
   const authHeaders = { Authorization: `Bearer ${token}` }
 
   const fetchUsuarios = async () => {
     try {
       const { data } = await axios.get(`${API_BASE_URL}/usuarios`, { headers: authHeaders })
-      /* backend devuelve: id, nombre_completo, email, telefono, celular, rol_id */
       const parsed = data.map(u => ({
         id    : u.id,
         name  : u.nombre_completo,
@@ -49,8 +46,6 @@ const GestionUsuarios = () => {
   }
 
   const updateUsuario = async (id, payload) => {
-    /* Si el admin cambia el rol llamamos al endpoint /admin/:id,
-       de lo contrario basta con PUT /:id */
     const url =
       payload.rol_id !== undefined
         ? `${API_BASE_URL}/usuarios/admin/${id}`
@@ -139,10 +134,10 @@ const GestionUsuarios = () => {
       await fetchUsuarios()
       setShowEditModal(false)
 
-      await ok("Usuario eliminado", "La cuenta se eliminó correctamente")        // ✔ éxito
+      await ok("Usuario eliminado", "La cuenta se eliminó correctamente")       
     } catch (err) {
       console.error(err)
-      errorSwal("No se pudo eliminar", err.response?.data?.message || "Error desconocido") // ❌ error
+      errorSwal("No se pudo eliminar", err.response?.data?.message || "Error desconocido")
     }
   }
 
@@ -238,7 +233,7 @@ const GestionUsuarios = () => {
     padding: ".5rem 1rem", fontSize: ".875rem", fontWeight: 500, cursor: "pointer", transition: "all .3s",
   }
 
-  /* ---- estilos del modal: igual al original ---- */
+  /* ---- estilos del modal ---- */
   const modalOverlayStyle       = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,.7)",
                                     display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }
   const modalStyle              = { backgroundColor: "white", borderRadius: "1rem", padding: "2rem", width: "100%",

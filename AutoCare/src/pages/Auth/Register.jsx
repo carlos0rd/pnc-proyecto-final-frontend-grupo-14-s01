@@ -59,8 +59,6 @@ const handleSubmit = async (e) => {
   }
 };
 
-
-
   // Estilos inline como fallback si Tailwind no funciona
   const containerStyle = {
     minHeight: "100vh",

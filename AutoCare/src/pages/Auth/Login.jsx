@@ -21,7 +21,6 @@ const Login = () => {
     setLoading(true);
   
     try {
-      /* 1️⃣  LOGIN ──────────────────────────────────────── */
       const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,11 +30,9 @@ const Login = () => {
       const { token, error } = await loginRes.json();
       if (!loginRes.ok) throw new Error(error || "Credenciales incorrectas");
   
-      /* 2️⃣  GUARDA TOKEN Y FLAG ───────────────────────── */
       localStorage.setItem("token", token);
       localStorage.setItem("isAuthenticated", "true");
   
-      /* 3️⃣  FECTH /usuarios/me  ───────────────────────── */
       const meRes = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -43,17 +40,15 @@ const Login = () => {
   
       const perfil = await meRes.json();  // {nombre_completo, email, telefono, celular, rol_id}
       //console.log(perfil);
-      /* 4️⃣  GUARDA currentUser COMPLETO ───────────────── */
       localStorage.setItem("currentUser", JSON.stringify({
         id: perfil.id,
-        name: perfil.nombre_completo,  // <-- ¡esto estaba faltando!
+        name: perfil.nombre_completo,  
         email: perfil.email,
         phone: perfil.telefono ?? "",
         mobile: perfil.celular ?? "",
         rol_id: perfil.rol_id
       }));
   
-      /* 5️⃣  REDIRIGE SEGÚN ROL ───────────────────────── */
       if (perfil.rol_id === 1)      navigate("/dashboard-cliente");
       else if (perfil.rol_id === 2 ) navigate("/dashboard-mecanico");
       else if (perfil.rol_id === 3) navigate("/dashboard-admin");
@@ -223,7 +218,7 @@ const Login = () => {
   const rightSectionStyle = {
     width: "50%",
     position: "relative",
-    backgroundImage:`url(${LoginImage})`, // Asegúrate de que la ruta sea correcta
+    backgroundImage:`url(${LoginImage})`,
     backgroundSize: "cover",
     backgroundPosition: "center",
     clipPath: "polygon(25% 0, 100% 0%, 100% 100%, 0% 100%)",
