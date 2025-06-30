@@ -2,212 +2,40 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
+import axios from "axios" 
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
 const ReparacionesMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
   const [userData, setUserData] = useState(null)
-  const [vehiculoData, setVehiculoData] = useState(null)
   const navigate = useNavigate()
   const { id } = useParams()
 
-  // Datos de vehículos quemados para el ejemplo
-  const vehiculosData = [
-    {
-      id: 1,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      cliente: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      marca: "Toyota",
-      modelo: "Corolla",
-      placa: "DEF-5678",
-      mecanico: "Juan",
-      cliente: "Pedro",
-      imagen:
-        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      marca: "Honda",
-      modelo: "Civic",
-      placa: "GHI-9012",
-      mecanico: "Juan",
-      cliente: "Carlos",
-      imagen:
-        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-  ]
+  const [vehiculoData, setVehiculoData] = useState(null);
+  const [reparaciones, setReparaciones] = useState([]); 
 
-  // Datos de reparaciones quemados para el ejemplo
-  const reparacionesData = [
-    // Reparaciones para Vehículo 1 (Chevrolet Onix ABC-1234)
-    {
-      id: "0001",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Cambio de ruedas",
-          descripcion: "Reemplace las ruedas estándar con ruedas personalizadas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Finalizado",
-          valor: "$ 820,76",
-        },
-        {
-          nombre: "Cambio de aceite",
-          descripcion: "Cambio de aceite y filtro",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 150,00",
-        },
-        {
-          nombre: "Revisión de frenos",
-          descripcion: "Revisión y ajuste del sistema de frenos",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.901,52",
-        },
-      ],
-    },
-    {
-      id: "0002",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Rechazado por el cliente",
-      valor: "$ 872,28",
-      servicios: [
-        {
-          nombre: "Cambio de batería",
-          descripcion: "Reemplazo de batería agotada",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Rechazado",
-          valor: "$ 872,28",
-        },
-      ],
-    },
-    {
-      id: "0003",
-      vehiculoId: 1,
-      fechaInicio: "20/09/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 3.872,28",
-      servicios: [
-        {
-          nombre: "Alineación y balanceo",
-          descripcion: "Alineación de dirección y balanceo de ruedas",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-        {
-          nombre: "Cambio de amortiguadores",
-          descripcion: "Reemplazo de amortiguadores delanteros y traseros",
-          fechaInicio: "20/09/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 2.672,28",
-        },
-      ],
-    },
-    // Reparaciones para Vehículo 2 (Toyota Corolla DEF-5678)
-    {
-      id: "0004",
-      vehiculoId: 2,
-      fechaInicio: "15/10/2021",
-      fechaFinalizacion: "20/10/2021",
-      status: "Finalizado",
-      valor: "$ 2.500,00",
-      servicios: [
-        {
-          nombre: "Mantenimiento general",
-          descripcion: "Revisión completa del vehículo y cambio de filtros",
-          fechaInicio: "15/10/2021",
-          fechaFinalizacion: "20/10/2021",
-          status: "Finalizado",
-          valor: "$ 2.500,00",
-        },
-      ],
-    },
-    {
-      id: "0005",
-      vehiculoId: 2,
-      fechaInicio: "05/11/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 1.800,00",
-      servicios: [
-        {
-          nombre: "Reparación de transmisión",
-          descripcion: "Revisión y reparación del sistema de transmisión",
-          fechaInicio: "05/11/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 1.800,00",
-        },
-      ],
-    },
-    // Reparaciones para Vehículo 3 (Honda Civic GHI-9012)
-    {
-      id: "0006",
-      vehiculoId: 3,
-      fechaInicio: "01/12/2021",
-      fechaFinalizacion: "----",
-      status: "Pendiente",
-      valor: "$ 950,00",
-      servicios: [
-        {
-          nombre: "Cambio de llantas",
-          descripcion: "Reemplazo de las cuatro llantas del vehículo",
-          fechaInicio: "01/12/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 950,00",
-        },
-      ],
-    },
-    {
-      id: "0007",
-      vehiculoId: 3,
-      fechaInicio: "10/12/2021",
-      fechaFinalizacion: "----",
-      status: "En curso",
-      valor: "$ 3.200,00",
-      servicios: [
-        {
-          nombre: "Reparación de motor",
-          descripcion: "Revisión completa y reparación del motor",
-          fechaInicio: "10/12/2021",
-          fechaFinalizacion: "----",
-          status: "En curso",
-          valor: "$ 2.000,00",
-        },
-        {
-          nombre: "Cambio de sistema eléctrico",
-          descripcion: "Actualización del sistema eléctrico del vehículo",
-          fechaInicio: "10/12/2021",
-          fechaFinalizacion: "----",
-          status: "Pendiente",
-          valor: "$ 1.200,00",
-        },
-      ],
-    },
-  ]
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    tipo_reparacion: "",
+    descripcion:     "",
+    fecha_inicio:    "",
+    fecha_fin:       "",
+    precio:          "",
+    status:         "En curso", // Valor por defecto
+  });
+
+  // Estado para el modal de edición
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentRep, setCurrentRep] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    tipo_reparacion: "",
+    descripcion:     "",
+    fecha_inicio:    "",
+    fecha_fin:       "",
+    status:          "",
+  });
+  
+
 
   useEffect(() => {
     // Verificar si el usuario está autenticado
@@ -222,8 +50,8 @@ const ReparacionesMecanico = () => {
 
     // Cargar datos del usuario
     const user = JSON.parse(currentUser)
-    if (user.role !== "mecanico") {
-      if (user.role === "admin" || user.email.includes("admin")) {
+    if (user.rol_id !== 2) {
+      if (user.rol_id === 3) {
         navigate("/dashboard-admin")
       } else {
         navigate("/dashboard-cliente")
@@ -231,16 +59,34 @@ const ReparacionesMecanico = () => {
       return
     }
 
-    setUserData(user)
+   (async () => {                     // 👈 NUEVO  IIFE async
+    try {
+      const token = localStorage.getItem("token");
 
-    // Buscar el vehículo por ID
-    const vehiculo = vehiculosData.find((v) => v.id === Number.parseInt(id))
-    if (vehiculo) {
-      setVehiculoData(vehiculo)
-    } else {
-      // Si no se encuentra el vehículo, redirigir a la lista de vehículos
-      navigate("/vehiculos-mecanico")
+      //vehículo por ID
+      const vehRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/vehiculos/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setVehiculoData(vehRes.data);
+      
+
+      // reparaciones del vehículo
+      const repRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setUserData(user)
+      setReparaciones(Array.isArray(repRes.data) ? repRes.data : []);
+
+    } catch (err) {
+      console.error(err);
+      setReparaciones([]);
+      navigate("/vehiculos-mecanico");
     }
+  })();
+  
   }, [id, navigate])
 
   // Estilos inline para asegurar que funcione sin Tailwind
@@ -271,18 +117,16 @@ const ReparacionesMecanico = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    backgroundColor: "white",
     borderRadius: "50%",
+    overflowY: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 
@@ -405,6 +249,22 @@ const ReparacionesMecanico = () => {
     right: "1.5rem",
     textAlign: "right",
   }
+   const inputStyle = {
+    width: "100%",
+    padding: "0.75rem",
+    border: "2px solid #d1d5db",
+    borderRadius: "0.375rem",
+    fontSize: "1rem",
+    outline: "none",
+    transition: "border-color 0.3s ease",
+  }
+  
+  const textareaStyle = {
+    ...inputStyle,
+    minHeight: "100px",
+    resize: "vertical",
+  }
+
 
   const getStatusStyle = (status) => {
     let color = "#2D3573" // Default blue
@@ -453,6 +313,100 @@ const ReparacionesMecanico = () => {
   const handleReparacionClick = (reparacionId) => {
     navigate(`/servicios-mecanico/${id}/${reparacionId}`)
   }
+
+  
+    const handleAddChange = ({ target }) =>
+      setAddFormData({ ...addFormData, [target.name]: target.value });
+
+    const handleAddSubmit = async (e) => {
+      e.preventDefault();
+
+      if(!addFormData.tipo_reparacion.trim() || !addFormData.descripcion.trim()) {
+        return warn("Campos obligatorios", "Tipo y descripción no púeden quedar vaciós")
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+
+        await axios.post(
+          `${import.meta.env.VITE_API_URL}/reparaciones`,
+          {
+            ...addFormData,
+            precio: parseFloat(addFormData.precio) || 0,
+            vehiculo_id: id,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const repRes = await axios.get(
+          `${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setReparaciones(repRes.data);  
+
+        setShowAddModal(false);
+        setAddFormData({
+          tipo_reparacion: "",
+          descripcion: "",
+          fecha_inicio: "",
+          fecha_fin: "",
+          precio: "",
+          status: "Pendiente",
+        });
+        await ok("Reparación registrada", "Se guardó correctamente")
+      } catch (err) {
+        console.error(err)
+        errorSwal("Error al registrar", err.response?.data?.message || "Intenta más tarde")
+      }
+    };
+
+  const openEditModal = (rep) => {
+  setCurrentRep(rep);
+  setEditFormData({
+    tipo_reparacion: rep.tipo_reparacion,
+    descripcion:     rep.descripcion,
+    fecha_inicio:    rep.fecha_inicio?.slice(0,10) ?? "",
+    fecha_fin:       rep.fecha_fin?.slice(0,10)   ?? "",
+    precio:          rep.precio ?? "",
+    status:          rep.status,
+  });
+  setShowEditModal(true);
+};
+
+const handleEditChange = ({ target }) =>
+  setEditFormData({ ...editFormData, [target.name]: target.value });
+
+const handleEditSubmit = async (e) => {
+  e.preventDefault();
+
+  if(!editFormData.tipo_reparacion.trim() || !editFormData.descripcion.trim()) {
+    return warn("Campos obligatorios", "Tipo y descripción no pueden quedar vaciós")
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    await axios.put(
+      `${import.meta.env.VITE_API_URL}/reparaciones/${currentRep.id}`,
+      {
+        ...editFormData,
+        precio: parseFloat(editFormData.precio) || 0,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    /* refrescamos lista sin recargar la página */
+    setReparaciones((prev) =>
+      prev.map((r) =>
+        r.id === currentRep.id ? { ...r, ...editFormData } : r
+      )
+    );
+    setShowEditModal(false);
+    await ok("Reparación actualizada", "Los cambios se guardaron")
+  } catch (err) {
+    console.error(err)
+    errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
+  }
+};
 
   // Si no hay datos del usuario o vehículo, mostrar loading
   if (!userData || !vehiculoData) {
@@ -529,37 +483,345 @@ const ReparacionesMecanico = () => {
           <p style={subtitleStyle}>Placa: {vehiculoData.placa}</p>
         </div>
 
+        {/* Botón agregar */}
+      <div style={{ textAlign: "right", marginBottom: "1rem" }}>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{
+            backgroundColor: "#22c55e",
+            color: "white",
+            padding: "0.6rem 1.2rem",
+            borderRadius: "0.375rem",
+            fontWeight: 600,
+            border: "none",
+            cursor: "pointer",
+          }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = "#16a34a")}
+          onMouseOut={(e) => (e.target.style.backgroundColor = "#22c55e")}
+        >
+          Agregar Reparación
+        </button>
+      </div>
+
         {/* Reparaciones Section */}
         <h2 style={sectionTitleStyle}>Registro de Reparaciones</h2>
 
         {/* Lista de Reparaciones */}
-        {reparacionesData
-          .filter((reparacion) => reparacion.vehiculoId === vehiculoData.id)
-          .map((reparacion) => (
+        {reparaciones.length === 0 && (
+             <p style={{ color: "#6b7280", fontSize: "1rem" }}>No hay reparaciones registradas para este vehículo.</p>
+
+        )}
+
+       {reparaciones.map((rep) => (
             <div
-              key={reparacion.id}
+              key={rep.id}
               style={reparacionCardStyle}
-              onClick={() => handleReparacionClick(reparacion.id)}
+              onClick={() => handleReparacionClick(rep.id)} 
               onMouseOver={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)"
-                e.currentTarget.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)"
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow  = "0 4px 6px rgba(0,0,0,0.1)";
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.transform = "translateY(0)"
-                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)"
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow  = "0 1px 3px rgba(0,0,0,0.1)";
               }}
             >
-              <h3 style={reparacionTitleStyle}>Reparación #{reparacion.id}</h3>
-              <p style={reparacionDetailStyle}>Fecha de Inicio: {reparacion.fechaInicio}</p>
-              <p style={reparacionDetailStyle}>Fecha de Finalización: {reparacion.fechaFinalizacion}</p>
+              <div>
+                <h3 style={reparacionTitleStyle}>Reparación #{rep.id}</h3>
+                <p style={reparacionDetailStyle}>
+                  Fecha de Inicio: {rep.fecha_inicio}
+                </p>
+                <p style={reparacionDetailStyle}>
+                  Fecha de Finalización: {rep.fecha_fin}
+                </p>
+              </div>
 
+            
               <div style={statusContainerStyle}>
-                <p style={getStatusStyle(reparacion.status)}>Status: {reparacion.status}</p>
-                <p style={valorStyle}>Valor: {reparacion.valor}</p>
+                <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
+                <p style={valorStyle}>Valor: ${rep.precio}</p>
+
+                {/* Botón para el modal de editar reparación */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();         
+                    openEditModal(rep);          
+                  }}
+                  style={{
+                    marginTop: "0.5rem",
+                    padding: "0.4rem 0.8rem",
+                    background: "#2D3573",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.875rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Editar reparación
+                </button>
               </div>
             </div>
           ))}
       </div>
+
+            {/* Modal para agregar reparación */}
+      {showAddModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 50,
+          }}
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            style={{
+              width: "540px",
+              background: "white",
+              borderRadius: "0.75rem",
+              padding: "2rem",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2D3573", textAlign: "center" }}>
+              Nueva Reparación
+            </h2>
+            <p style={{ textAlign: "center", marginBottom: "1.5rem", color: "#6b7280" }}>
+              Complete los datos de la reparación
+            </p>
+
+            <form onSubmit={handleAddSubmit}>
+              <input
+                style={inputStyle}
+                type="text"
+                name="tipo_reparacion"
+                placeholder="Tipo de reparación"
+                value={addFormData.tipo_reparacion}
+                onChange={handleAddChange}
+                required
+              />
+
+              <textarea
+                style={textareaStyle}
+                name="descripcion"
+                placeholder="Descripción"
+                value={addFormData.descripcion}
+                onChange={handleAddChange}
+                required
+              />
+
+              <input
+                style={inputStyle}
+                type="date"
+                name="fecha_inicio"
+                value={addFormData.fecha_inicio}
+                onChange={handleAddChange}
+                required
+              />
+
+              <input
+                style={inputStyle}
+                type="date"
+                name="fecha_fin"
+                value={addFormData.fecha_fin}
+                onChange={handleAddChange}
+              />
+
+              <select
+                name="status"
+                value={addFormData.status}
+                onChange={handleAddChange}
+                style={{
+                  width: "100%",
+                  height: "2.75rem",
+                  padding: "0 0.75rem",
+                  background: "#F5F7F9",
+                  border: "2px solid #282F66",
+                  borderRadius: "0.375rem",
+                  fontSize: "1rem",
+                  marginBottom: "1rem",
+                }}
+                required
+              >
+                <option value="Pendiente">Pendiente</option>
+                <option value="En curso">En curso</option>
+                <option value="Finalizado">Finalizado</option>
+                <option value="Rechazado por el cliente">Rechazado por el cliente</option>
+              </select>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    marginRight: "0.5rem",
+                    background: "#22c55e",
+                    color: "white",
+                    border: "none",
+                    padding: "0.8rem",
+                    borderRadius: "0.375rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Guardar
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    marginLeft: "0.5rem",
+                    background: "#6b7280",
+                    color: "white",
+                    border: "none",
+                    padding: "0.8rem",
+                    borderRadius: "0.375rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal editar reparación */}
+        {showEditModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.4)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 50,
+            }}
+            onClick={() => setShowEditModal(false)}
+          >
+            <div
+              style={{
+                width: "540px",
+                background: "white",
+                borderRadius: "0.75rem",
+                padding: "2rem",
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#2D3573", textAlign: "center" }}>
+                Editar Reparación
+              </h2>
+              <p style={{ textAlign: "center", marginBottom: "1.5rem", color: "#6b7280" }}>
+                Modifique los datos necesarios
+              </p>
+
+              <form onSubmit={handleEditSubmit}>
+                <input
+                  style={inputStyle}
+                  type="text"
+                  name="tipo_reparacion"
+                  placeholder="Tipo de reparación"
+                  value={editFormData.tipo_reparacion}
+                  onChange={handleEditChange}
+                  required
+                />
+
+                <textarea
+                  style={textareaStyle}
+                  name="descripcion"
+                  placeholder="Descripción"
+                  value={editFormData.descripcion}
+                  onChange={handleEditChange}
+                  required
+                />
+
+                <input
+                  style={inputStyle}
+                  type="date"
+                  name="fecha_inicio"
+                  value={editFormData.fecha_inicio}
+                  onChange={handleEditChange}
+                  required
+                />
+
+                <input
+                  style={inputStyle}
+                  type="date"
+                  name="fecha_fin"
+                  value={editFormData.fecha_fin}
+                  onChange={handleEditChange}
+                />
+
+                <select
+                  name="status"
+                  value={editFormData.status}
+                  onChange={handleEditChange}
+                  style={{
+                    ...inputStyle,
+                    height: "2.75rem",
+                    background: "#F5F7F9",
+                  }}
+                  required
+                >
+                  <option value="Pendiente">Pendiente</option>
+                  <option value="En curso">En curso</option>
+                  <option value="Finalizado">Finalizado</option>
+                  <option value="Rechazado por el cliente">Rechazado por el cliente</option>
+                </select>
+
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
+                  <button
+                    type="submit"
+                    style={{
+                      flex: 1,
+                      marginRight: "0.5rem",
+                      background: "#22c55e",
+                      color: "white",
+                      border: "none",
+                      padding: "0.8rem",
+                      borderRadius: "0.375rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Guardar Cambios
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      flex: 1,
+                      marginLeft: "0.5rem",
+                      background: "#6b7280",
+                      color: "white",
+                      border: "none",
+                      padding: "0.8rem",
+                      borderRadius: "0.375rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setShowEditModal(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
     </div>
   )
 }

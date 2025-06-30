@@ -1,13 +1,16 @@
 "use client"
 
+import axios from "axios"; 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { ok, warn, error as errorSwal, confirm } from "../../utils/alerts"
 
 const VehiculosMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
   const [userData, setUserData] = useState(null)
-  const [showDropdown, setShowDropdown] = useState(null) // Track which vehicle's dropdown is open
+  const [showDropdown, setShowDropdown] = useState(null) 
   const navigate = useNavigate()
+  const [search, setSearch] = useState("");    
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [addFormData, setAddFormData] = useState({
@@ -16,43 +19,46 @@ const VehiculosMecanico = () => {
     año: "",
     color: "",
     placa: "",
-    cliente: "",
+    clienteEmail: "",
     imagen: null,
   })
 
-  // Datos de vehículos asignados al mecánico
-  const vehiculosData = [
-    {
-      id: 1,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "ABC-1234",
-      mecanico: "Juan",
-      cliente: "Juan",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 2,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "DEF-5678",
-      mecanico: "Juan",
-      cliente: "María",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-    {
-      id: 3,
-      marca: "Chevrolet",
-      modelo: "Onix",
-      placa: "GHI-9012",
-      mecanico: "Juan",
-      cliente: "Carlos",
-      imagen:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80",
-    },
-  ]
+  // Estado para el modal de edición
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPreview, setEditPreview] = useState(null);      // para la miniatura
+  const [editData, setEditData] = useState({
+    id: "",
+    modelo: "",
+    marca: "",
+    anio: "",
+    color: "",
+    placa: "",
+    imagen: null,    // File o null
+  });
+
+ const [vehiculos,   setVehiculos]   = useState([]);
+ const [page,        setPage]        = useState(1);   
+ const [totalPages,  setTotalPages]  = useState(1);   
+ const limit = 10;   
+ const [file, setFile] = useState(null);
+
+
+  const fetchVehiculos = async (p = 1) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+       `${import.meta.env.VITE_API_URL}/vehiculos?page=${p}&limit=${limit}`,
+       { headers: { Authorization: `Bearer ${token}` } }
+     );
+      // si tu backend devuelve { data: [...] } usa res.data.data
+       const { data, totalPages } = res.data;
+     setVehiculos(Array.isArray(data) ? data : []);
+     setTotalPages(totalPages || 1);
+    } catch (err) {
+      console.error("Error al obtener vehículos:", err);
+      setVehiculos([]);
+    }
+  };
 
   useEffect(() => {
     // Verificar si el usuario está autenticado
@@ -65,8 +71,8 @@ const VehiculosMecanico = () => {
     }
 
     const user = JSON.parse(currentUser)
-    if (user.role !== "mecanico") {
-      if (user.role === "admin" || user.email.includes("admin")) {
+    if (user.rol_id !== 2) {
+      if (user.rol_id === 3) {
         navigate("/dashboard-admin")
       } else {
         navigate("/dashboard-cliente")
@@ -76,6 +82,7 @@ const VehiculosMecanico = () => {
 
     setUserData(user)
 
+
     // Close dropdown when clicking outside
     const handleClickOutside = () => {
       setShowDropdown(null)
@@ -83,6 +90,14 @@ const VehiculosMecanico = () => {
     document.addEventListener("click", handleClickOutside)
     return () => document.removeEventListener("click", handleClickOutside)
   }, [navigate])
+
+  useEffect(() => {
+  fetchVehiculos(page)// se dispara al cambiar de pagina
+}, [page]);
+
+  useEffect(() => {                                     
+    setPage(1);
+  }, [search]);
 
   // Estilos inline
   const containerStyle = {
@@ -112,18 +127,16 @@ const VehiculosMecanico = () => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    backgroundColor: "white",
     borderRadius: "50%",
+    overflow: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "1rem",
-    marginBottom: "1rem",
   }
 
   const logoStyle = {
-    width: "80px",
-    height: "80px",
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   }
 
@@ -305,6 +318,12 @@ const VehiculosMecanico = () => {
     borderBottom: "none",
   }
 
+  
+
+  const handleSearchChange = (e) => {                    
+  setSearch(e.target.value.toLowerCase());
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("currentUser")
     localStorage.removeItem("isAuthenticated")
@@ -344,13 +363,28 @@ const VehiculosMecanico = () => {
     setShowDropdown(null)
   }
 
-  const handleDeleteVehicle = (vehiculoId) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este vehículo?")) {
-      console.log(`Eliminando vehículo ${vehiculoId}`)
-      alert("Vehículo eliminado exitosamente")
-    }
+  const handleDeleteVehicle = async (vehiculoId) => {
+  const okUser = await confirm("¿Eliminar vehículo?", "Esta acción es irreversible")
+  if (!okUser) return
+
+  try {
+    const token = localStorage.getItem("token")
+    await axios.delete(
+      `${import.meta.env.VITE_API_URL}/vehiculos/${vehiculoId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+
+    // elimina en la UI sin recargar
+    setVehiculos(prev => prev.filter(v => v.id !== vehiculoId))
+    await ok("Vehículo eliminado", "Se eliminó correctamente")
+  } catch (err) {
+    console.error(err)
+    errorSwal("No se pudo eliminar",
+              err.response?.data?.error || "Intenta más tarde")
+  } finally {
     setShowDropdown(null)
   }
+}
 
   const handleAddChange = (e) => {
     const { name, value } = e.target
@@ -360,31 +394,114 @@ const VehiculosMecanico = () => {
     })
   }
 
-  const handleAddSubmit = (e) => {
-    e.preventDefault()
-    console.log("Agregando vehículo:", addFormData)
-    setShowAddModal(false)
-    setAddFormData({
-      modelo: "",
-      marca: "",
-      año: "",
-      color: "",
-      placa: "",
-      cliente: "",
-      imagen: null,
-    })
-    alert("Vehículo agregado exitosamente")
+const handleAddSubmit = async (e) => {
+  e.preventDefault();
+
+  if(!addFormData.modelo.trim() || !addFormData.marca.trim()) {
+    return warn("Campos obligatorios", "Modelo y marca no pueden quedar vacíos")
   }
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setAddFormData({
-        ...addFormData,
-        imagen: file,
-      })
-    }
+  try {
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+    formData.append("modelo",        addFormData.modelo);
+    formData.append("marca",         addFormData.marca);
+    formData.append("anio",          addFormData.año);
+    formData.append("color",         addFormData.color);
+    formData.append("placa",         addFormData.placa);
+    formData.append("clienteEmail",  addFormData.clienteEmail);
+    if (file) formData.append("imagen", file);
+
+    await axios.post(
+      `${import.meta.env.VITE_API_URL}/vehiculos`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    //Refrescamos la lista de vehículos
+    setPage(1);
+    fetchVehiculos(1);
+
+    setAddFormData({
+      modelo: "", marca: "", año: "",
+      color: "", placa: "", clienteEmail: "", imagen: null,
+    });
+    setFile(null);
+    setShowAddModal(false);
+    await ok("Vehículo agregado", "Se registró correctamente")
+  } catch (err) {
+    console.error(err)
+    errorSwal("Error al registrar", err.response?.data?.message || "Intenta más tarde")
   }
+};
+
+
+  const handleImageUpload = (e) => {
+   const selected = e.target.files?.[0];
+    if (!selected) return;
+    setFile(selected);
+  }
+
+  const handleOpenEditModal = (veh) => {
+  setEditData({
+    id: veh.id,
+    modelo: veh.modelo,
+    marca: veh.marca,
+    anio: veh.anio,
+    color: veh.color,
+    placa: veh.placa,
+    imagen: null,              
+  });
+  setEditPreview(`${import.meta.env.VITE_API_URL}${veh.imagen}`);  
+  setShowDropdown(null);        
+  setShowEditModal(true);
+};
+
+  const handleEditChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "imagen") {
+      const file = files[0];
+      setEditData((prev) => ({ ...prev, imagen: file }));
+      setEditPreview(URL.createObjectURL(file));
+    } else {
+      setEditData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+    const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const fd = new FormData();
+      fd.append("modelo", editData.modelo);
+      fd.append("marca",  editData.marca);
+      fd.append("anio",   editData.anio);
+      fd.append("color",  editData.color);
+      fd.append("placa",  editData.placa);
+
+      if (editData.imagen) fd.append("imagen", editData.imagen); // sólo si cambia
+
+      const token = localStorage.getItem("token");
+
+      await axios.put(`${import.meta.env.VITE_API_URL}/vehiculos/${editData.id}`,
+        fd,
+        { headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` } }
+      );
+      
+      await ok("Vehículo actualizado", "Los cambios se guardaron")
+      setShowEditModal(false);
+      fetchVehiculos();          // vuelve a pedir la lista → sin recargar la página
+    } catch (err) {
+      console.error(err)
+    errorSwal("Error al guardar cambios", err.response?.data?.message || "Intenta más tarde")
+    }
+  };
+
 
   // Modal styles (keeping the existing add modal)
   const addModalStyle = {
@@ -491,6 +608,123 @@ const VehiculosMecanico = () => {
     boxSizing: "border-box",
   }
 
+  const searchInputStyle = {                              
+    ...inputStyle,
+    maxWidth: "300px",
+    marginRight: "1rem",
+  };
+
+  // Tamaño y recorte uniforme de las fotos
+  const vehicleThumbWrapper = {
+    width: 110,           
+    height: 110,          
+    flexShrink: 0,        
+    borderRadius: 8,      
+    overflow: "hidden",   
+    marginRight: "1rem",
+  };
+
+  const vehicleThumbImg = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",    
+  };
+
+  const currentVehiculos = vehiculos.filter((v) => {      
+    const term = search.trim();
+    if (!term) return true;
+    return (
+      v.modelo?.toLowerCase().includes(term) ||
+      v.marca?.toLowerCase().includes(term)  ||
+      v.placa?.toLowerCase().includes(term)
+    );
+  });
+
+  /* ─────────────── VehiculosMecanico - estilos “edit modal” ─────────────── */
+
+  const modalBackdropStyle = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,.35)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  };
+
+  const modalStyle = {
+    width: "min(36rem, 90%)",
+    background: "#fff",
+    borderRadius: "0.75rem",
+    padding: "2rem 2.5rem",
+    boxShadow: "0 10px 25px rgba(0,0,0,.15)",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.9rem",
+  };
+
+  const modalTitle = {
+    fontSize: "1.5rem",
+    fontWeight: 700,
+    color: "#1e2a63",              // azul oscuro que usas en los h-titles
+    marginBottom: "0.75rem",
+    textAlign: "center",
+  };
+
+  // Caja de subida / preview de la imagen
+  const imgUploadWrapper = { display: "flex", justifyContent: "center" };
+
+  const imgUploadArea = {
+    width: "11rem",
+    height: "11rem",
+    border: "2px dashed #c4c4c4",
+    borderRadius: "0.5rem",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "0.85rem",
+    color: "#6b7280",
+    overflow: "hidden",
+  };
+
+  const imgPreviewStyle = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  };
+
+
+  const confirmBtnStyle = {
+    flex: 1,
+    background: "#16a34a",        
+    color: "#fff",
+    border: "none",
+    padding: "0.65rem 0",
+    borderRadius: "0.5rem",
+    fontSize: "0.95rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "opacity .15s",
+  };
+  const cancelBtnStyle = {
+    flex: 1,
+    background: "#6b7280",
+    color: "#fff",
+    border: "none",
+    padding: "0.65rem 0",
+    borderRadius: "0.5rem",
+    fontSize: "0.95rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "opacity .15s",
+  };
+
+
+
+  const handlePrev = () => page > 1 && setPage(page - 1);
+  const handleNext = () => page < totalPages && setPage(page + 1);
+
   if (!userData) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
@@ -552,34 +786,48 @@ const VehiculosMecanico = () => {
 
       {/* Main Content */}
       <div style={mainContentStyle}>
-        <div style={headerStyle}>
-          <h1 style={titleStyle}>Menú Vehículos</h1>
-          <button
-            style={addButtonStyle}
-            onClick={handleAgregarVehiculo}
-            onMouseOver={(e) => (e.target.style.backgroundColor = "#16a34a")}
-            onMouseOut={(e) => (e.target.style.backgroundColor = "#22c55e")}
-          >
-            Agregar Vehiculo
-          </button>
-        </div>
+          <div style={headerStyle}>
+            <h1 style={titleStyle}>Menú Vehículos</h1>
+            <button
+              style={addButtonStyle}
+              onClick={handleAgregarVehiculo}
+              onMouseOver={(e) => (e.target.style.backgroundColor = "#16a34a")}
+              onMouseOut={(e) => (e.target.style.backgroundColor = "#22c55e")}
+            >
+              Agregar Vehiculo
+            </button>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "left", margin: "0 0 1.5rem" }}>
+        <input
+          type="text"
+          placeholder="Buscar vehículo…"
+          value={search}
+          onChange={handleSearchChange}
+          style={searchInputStyle}
+        />
+      </div>
 
         {/* Lista de Vehículos */}
         <div style={vehiculosContainerStyle}>
-          {vehiculosData.map((vehiculo) => (
+          {currentVehiculos.map((vehiculo) => (
             <div key={vehiculo.id} style={vehiculoCardStyle}>
-              <img
-                src={vehiculo.imagen || "/placeholder.svg"}
-                alt={`${vehiculo.marca} ${vehiculo.modelo}`}
-                style={vehiculoImageStyle}
-              />
 
-              <div style={vehiculoInfoStyle}>
+              <div style={vehicleThumbWrapper}>
+                 <img
+                  src={`${import.meta.env.VITE_API_URL}${vehiculo.imagen}`}   //  http://localhost:3000/imagenes/....
+                  alt={vehiculo.modelo}
+                  style={vehicleThumbImg}
+                />
+              </div>
+               
+                
+                <div style={vehiculoInfoStyle}>
                 <h3 style={vehiculoNombreStyle}>
                   {vehiculo.marca} {vehiculo.modelo}
                 </h3>
                 <p style={vehiculoDetalleStyle}>Placa: {vehiculo.placa}</p>
-                <p style={vehiculoDetalleStyle}>Mecánico: {vehiculo.mecanico}</p>
+                <p style={vehiculoDetalleStyle}>Marca: {vehiculo.marca}</p>
                 <p style={vehiculoDetalleStyle}>Cliente: {vehiculo.cliente}</p>
               </div>
 
@@ -613,37 +861,13 @@ const VehiculosMecanico = () => {
                   {/* Dropdown Menu */}
                   {showDropdown === vehiculo.id && (
                     <div style={dropdownStyle}>
-                      <div
+                    <div
                         style={dropdownItemStyle}
-                        onClick={() => handleEditField(vehiculo.id, "modelo")}
+                        onClick={() => handleOpenEditModal(vehiculo)}
                         onMouseOver={(e) => (e.target.style.backgroundColor = dropdownItemHoverStyle.backgroundColor)}
                         onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
                       >
-                        ✏️ Editar Nombre
-                      </div>
-                      <div
-                        style={dropdownItemStyle}
-                        onClick={() => handleEditField(vehiculo.id, "placa")}
-                        onMouseOver={(e) => (e.target.style.backgroundColor = dropdownItemHoverStyle.backgroundColor)}
-                        onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
-                      >
-                        🏷️ Editar Placa
-                      </div>
-                      <div
-                        style={dropdownItemStyle}
-                        onClick={() => handleEditField(vehiculo.id, "mecanico")}
-                        onMouseOver={(e) => (e.target.style.backgroundColor = dropdownItemHoverStyle.backgroundColor)}
-                        onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
-                      >
-                        🔧 Editar Mecánico
-                      </div>
-                      <div
-                        style={dropdownItemStyle}
-                        onClick={() => handleEditField(vehiculo.id, "cliente")}
-                        onMouseOver={(e) => (e.target.style.backgroundColor = dropdownItemHoverStyle.backgroundColor)}
-                        onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
-                      >
-                        👤 Editar Cliente
+                        ✏️ Editar Vehículo
                       </div>
                       <div
                         style={deleteItemStyle}
@@ -660,25 +884,95 @@ const VehiculosMecanico = () => {
             </div>
           ))}
         </div>
+       {totalPages > 1 && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "1.25rem",
+          margin: "2rem 0"
+        }}>
+          {/* Anterior */}
+          <button
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+            style={{
+              padding: ".5rem 1.25rem",
+              borderRadius: "0.375rem",
+              border: "none",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              color: page === 1 ? "#9ca3af" : "#fff",
+              backgroundColor: page === 1 ? "#e5e7eb" : "#1e40af",
+              cursor: page === 1 ? "default" : "pointer",
+              transition: "background-color .2s ease"
+            }}
+          >
+            ◀︎ Anterior
+          </button>
+
+          {/* Indicador */}
+          <span style={{ fontSize: "0.95rem", fontWeight: 500, color: "#1f2937" }}>
+            Página {page} / {totalPages}
+          </span>
+
+          {/* Siguiente */}
+          <button
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages}
+            style={{
+              padding: ".5rem 1.25rem",
+              borderRadius: "0.375rem",
+              border: "none",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              color: page === totalPages ? "#9ca3af" : "#fff",
+              backgroundColor: page === totalPages ? "#e5e7eb" : "#1e40af",
+              cursor: page === totalPages ? "default" : "pointer",
+              transition: "background-color .2s ease"
+            }}
+          >
+            Siguiente ▶︎
+          </button>
+        </div>
+      )}
       </div>
 
       {/* Modal de Agregar Vehículo */}
       {showAddModal && (
         <div style={modalOverlayStyle} onClick={() => setShowAddModal(false)}>
           <div style={addModalStyle} onClick={(e) => e.stopPropagation()}>
-            <div style={addModalHeaderStyle}>
-              <h2 style={modalTitleStyle}>Agregar un nuevo vehículo</h2>
-              <p style={modalSubtitleStyle}>Agregue la información de su vehículo</p>
-            </div>
-
+         
             <form onSubmit={handleAddSubmit}>
               <div style={addModalContentStyle}>
-                {/* Sección de imagen */}
+                  {/* Sección imagen*/}
                 <div style={imageUploadSectionStyle}>
-                  <div style={imageUploadAreaStyle} onClick={() => document.getElementById("imageInput").click()}>
-                    <div style={cameraIconStyle}>📷</div>
-                    <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>Dos cam...</span>
+                  <div
+                    style={imageUploadAreaStyle}
+                    onClick={() => document.getElementById("imageInput").click()}
+                  >
+                    {file ? (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="preview"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          borderRadius: "6px",
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <div style={cameraIconStyle} />
+                        <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                          Dos cam…
+                        </span>
+                      </>
+                    )}
                   </div>
+
+                  {/* input oculto */}
                   <input
                     id="imageInput"
                     type="file"
@@ -686,13 +980,14 @@ const VehiculosMecanico = () => {
                     onChange={handleImageUpload}
                     style={{ display: "none" }}
                   />
+
                   <input
                     type="text"
-                    name="cliente"
-                    value={addFormData.cliente}
+                    name="clienteEmail"
+                    value={addFormData.clienteEmail}
                     onChange={handleAddChange}
                     style={inputStyle}
-                    placeholder="Nombre de usuario de cliente"
+                    placeholder="Correo del cliente"
                     required
                   />
                 </div>
@@ -763,6 +1058,88 @@ const VehiculosMecanico = () => {
           </div>
         </div>
       )}
+      {showEditModal && (
+      <div style={modalBackdropStyle}>
+        <form
+          style={modalStyle}
+          onSubmit={handleEditSubmit}
+        >
+          <h2 style={modalTitle}>Editar vehículo</h2>
+
+          {/* Foto */}
+          <div style={imgUploadWrapper}>
+            <label htmlFor="editImageInput" style={imgUploadArea}>
+              {editPreview ? (
+                <img src={editPreview} style={imgPreviewStyle} />
+              ) : (
+                "Cambiar foto"
+              )}
+            </label>
+            <input
+              id="editImageInput"
+              name="imagen"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleEditChange}
+            />
+          </div>
+
+          {/* Campos */}
+          <input
+            name="modelo"
+            placeholder="Modelo"
+            value={editData.modelo}
+            onChange={handleEditChange}
+            style={inputStyle}
+          />
+          <input
+            name="marca"
+            placeholder="Marca"
+            value={editData.marca}
+            onChange={handleEditChange}
+            style={inputStyle}
+          />
+          <input
+            name="anio"
+            placeholder="Año"
+            value={editData.anio}
+            onChange={handleEditChange}
+            style={inputStyle}
+          />
+          <input
+            name="color"
+            placeholder="Color"
+            value={editData.color}
+            onChange={handleEditChange}
+            style={inputStyle}
+          />
+          <input
+            name="placa"
+            placeholder="Placa"
+            value={editData.placa}
+            onChange={handleEditChange}
+            style={inputStyle}
+          />
+
+          {/* Botones */}
+          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+            <button type="submit" style={confirmBtnStyle}>
+              Guardar cambios
+            </button>
+            <button
+              type="button"
+              style={cancelBtnStyle}
+              onClick={() => setShowEditModal(false)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
+
+
     </div>
   )
 }

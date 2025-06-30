@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
-/* ------------------------------------------------------------------
-   Ajusta la URL de tu backend (.env =>  VITE_API_URL=http://localhost:3001)
-------------------------------------------------------------------- */
 const API_URL = import.meta.env.VITE_API_URL
 
 const DashboardAdmin = () => {
@@ -70,8 +68,7 @@ const DashboardAdmin = () => {
     e.preventDefault()
 
     if (!editFormData.name.trim() || !editFormData.email.trim()) {
-      alert("Nombre y correo son obligatorios")
-      return
+      return warn("Campos obligatorios", "Nombre y correo no pueden quedar vacíos");
     }
 
     try {
@@ -90,8 +87,8 @@ const DashboardAdmin = () => {
       )
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || "Error al actualizar")
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Error al actualizar");
       }
 
       const updatedUser = {
@@ -105,10 +102,10 @@ const DashboardAdmin = () => {
       localStorage.setItem("currentUser", JSON.stringify(updatedUser))
       setUserData(updatedUser)
       setShowEditModal(false)
-      alert("Perfil actualizado correctamente")
+      await ok("Perfil actualizado", "Los cambios se guardaron correctamente")
     } catch (err) {
       console.error(err)
-      alert("Hubo un problema al actualizar tu perfil")
+      errorSwal("Hubo un problema al actualizar tu perfil")
     }
   }
 
@@ -117,8 +114,7 @@ const DashboardAdmin = () => {
     e.preventDefault()
 
     if (newPassword.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres")
-      return
+      return warn("Contraseña demasiado corta", "Debe tener al menos 6 caracteres");
     }
 
     try {
@@ -132,16 +128,16 @@ const DashboardAdmin = () => {
       )
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || "Error al cambiar contraseña")
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Error al cambiar la contraseña");
       }
 
       setNewPassword("")
       setShowPasswordModal(false)
-      alert("Contraseña cambiada exitosamente")
+      await ok("¡Contraseña cambiada!", "Tu nueva contraseña ya está activa");
     } catch (err) {
       console.error(err)
-      alert("Hubo un error al cambiar la contraseña")
+      errorSwal("Error al cambiar contraseña", err.message);
     }
   }
 
@@ -158,7 +154,6 @@ const DashboardAdmin = () => {
     navigate("/")
   }
 
-  /* --------------------------- estilos (sin cambios) --------------------------- */
   const containerStyle = {
     display: "flex",
     minHeight: "100vh",

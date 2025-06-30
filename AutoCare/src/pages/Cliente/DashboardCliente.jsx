@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
 const DashboardCliente = () => {
   const [activeMenu, setActiveMenu] = useState("perfil")
@@ -37,6 +38,8 @@ const DashboardCliente = () => {
       phone: user.phone,
       mobile: user.mobile,
     })
+
+   // console.log(user);
   }, [navigate])
 
   const handleEditChange = (e) => {
@@ -49,6 +52,10 @@ const DashboardCliente = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    
+    if(!editFormData.name.trim() || !editFormData.email.trim()) {
+      return warn("Campos obligatorios", "Nombre y correo no pueden quedar vaciós")
+    }
 
     const token = localStorage.getItem("token");
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
@@ -70,11 +77,11 @@ const DashboardCliente = () => {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Error al actualizar");
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Error al actualizar")
       }
 
-      alert("Perfil actualizado correctamente.");
+      await ok("Perfil actualizado", "Los cambios se guardaron correctamente")
 
       // Actualizar localStorage y estado local
       const updatedUser = {
@@ -88,9 +95,9 @@ const DashboardCliente = () => {
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
       setUserData(updatedUser);
       setShowEditModal(false);
-    } catch (error) {
-      console.error("Error al guardar los cambios:", error.message);
-      alert("Hubo un problema al actualizar tu perfil.");
+    } catch (err) {
+      console.error(err)
+      errorSwal("No se pudo actualizar", err.message)
     }
   };
 
@@ -98,8 +105,7 @@ const DashboardCliente = () => {
     e.preventDefault();
 
     if (newPassword.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres");
-      return;
+      return warn("Contraseña muy corta", "Debe tener al menos 6 caracteres")
     }
 
     const token = localStorage.getItem("token");
@@ -119,16 +125,16 @@ const DashboardCliente = () => {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Error al cambiar contraseña");
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Error al cambiar contraseña")
       }
 
-      alert("Contraseña cambiada exitosamente.");
+      await ok("Contraseña cambiada", "Tu nueva contraseña ya está activa")
       setNewPassword("");
       setShowPasswordModal(false);
-    } catch (error) {
-      console.error("Error al cambiar contraseña:", error.message);
-      alert("Hubo un error al cambiar la contraseña.");
+    } catch (err) {
+      console.error(err)
+      errorSwal("Error al cambiar contraseña", err.message)
     }
   };
 

@@ -15,42 +15,12 @@ const Login = () => {
 
   const navigate = useNavigate()
 
-  // Credenciales quemadas para testing
-  const validCredentials = [
-    {
-      email: "juan@autocare.com",
-      password: "123456",
-      name: "Juan Tralalero",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 5555-5555",
-      role: "client",
-    },
-    {
-      email: "admin@autocare.com",
-      password: "admin123",
-      name: "Juan El Admin",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 5555-5555",
-      role: "admin",
-    },
-    {
-      email: "mecanico@autocare.com",
-      password: "meca123",
-      name: "Juan El Mecanico",
-      phone: "(+503) 5555-5555",
-      mobile: "(+503) 5555-5555",
-      role: "mecanico",
-    },
-  ]
-
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
   
     try {
-      /* 1️⃣  LOGIN ──────────────────────────────────────── */
       const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,31 +30,27 @@ const Login = () => {
       const { token, error } = await loginRes.json();
       if (!loginRes.ok) throw new Error(error || "Credenciales incorrectas");
   
-      /* 2️⃣  GUARDA TOKEN Y FLAG ───────────────────────── */
       localStorage.setItem("token", token);
       localStorage.setItem("isAuthenticated", "true");
   
-      /* 3️⃣  FECTH /usuarios/me  ───────────────────────── */
       const meRes = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!meRes.ok) throw new Error("No se pudo obtener el perfil");
   
       const perfil = await meRes.json();  // {nombre_completo, email, telefono, celular, rol_id}
-      console.log(perfil);
-      /* 4️⃣  GUARDA currentUser COMPLETO ───────────────── */
+      //console.log(perfil);
       localStorage.setItem("currentUser", JSON.stringify({
         id: perfil.id,
-        name: perfil.nombre_completo,  // <-- ¡esto estaba faltando!
+        name: perfil.nombre_completo,  
         email: perfil.email,
         phone: perfil.telefono ?? "",
         mobile: perfil.celular ?? "",
         rol_id: perfil.rol_id
       }));
   
-      /* 5️⃣  REDIRIGE SEGÚN ROL ───────────────────────── */
       if (perfil.rol_id === 1)      navigate("/dashboard-cliente");
-      else if (perfil.rol_id === 2) navigate("/dashboard-mecanico");
+      else if (perfil.rol_id === 2 ) navigate("/dashboard-mecanico");
       else if (perfil.rol_id === 3) navigate("/dashboard-admin");
       else                          navigate("/");
   
@@ -252,7 +218,7 @@ const Login = () => {
   const rightSectionStyle = {
     width: "50%",
     position: "relative",
-    backgroundImage:`url(${LoginImage})`, // Asegúrate de que la ruta sea correcta
+    backgroundImage:`url(${LoginImage})`,
     backgroundSize: "cover",
     backgroundPosition: "center",
     clipPath: "polygon(25% 0, 100% 0%, 100% 100%, 0% 100%)",
@@ -290,16 +256,7 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleLogin} style={formStyle}>
-            <p style={labelStyle}>Ingresar credenciales para iniciar sesión</p>
-
-            {/* Credenciales de prueba */}
-            <div style={credentialsStyle}>
-              <strong>Credenciales de prueba:</strong>
-              <br />📧 juan@autocare.com | 🔑 123456 (Cliente)
-              <br />📧 admin@autocare.com | 🔑 admin123 (Admin)
-              <br />📧 mecanico@autocare.com | 🔑 meca123 (Mecánico)
-            </div>
-                
+            <p style={labelStyle}>Ingresar credenciales para iniciar sesión</p>   
             <input
               type="email"
               placeholder="Email"

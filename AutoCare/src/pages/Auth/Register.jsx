@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import RegImage from "../../assets/register-img.png" 
+import RegImage from "../../assets/register-img.png"
+import { useNavigate } from "react-router-dom"
+import { ok, warn, error as errorSwal } from "../../utils/alerts"
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +14,7 @@ const Register = () => {
     phone: "",
     mobile: "",
   })
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -20,19 +23,17 @@ const Register = () => {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
+  if(formData.password !== formData.confirmPassword){
+    return warn("Contraseñas distintas", "Verifica e intentalo de nuevo");
+  }
+
   const payload = {
     nombre_completo: formData.name,
-    email: formData.email,
-    contrasena: formData.password,
-    telefono: formData.phone,
-    celular: formData.mobile
+    email          : formData.email,
+    contrasena     : formData.password,
+    telefono       : formData.phone,
+    celular        : formData.mobile
   };
-
-  // Verificar que las contraseñas coincidan
-  if (formData.password !== formData.confirmPassword) {
-    alert("Las contraseñas no coinciden");
-    return;
-  }
 
   try {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
@@ -46,18 +47,17 @@ const handleSubmit = async (e) => {
     const data = await response.json().catch(() => null);
 
     if (response.ok) {
-      alert("Usuario registrado exitosamente");
+      await ok('¡Registro completado!', 'Usuario creado con éxito');
+      navigate("/");
     } else {
-      const mensaje = data?.message || `Error del servidor (${response.status})`;
-      alert("Error en el registro: " + mensaje);
+      const mensaje = data?.message || `Error del servidor (${response.status}), cuenta existente`;
+      errorSwal("Error en el registro", mensaje);
     }
   } catch (error) {
     console.error(error);
-    alert("Error de conexión: " + error.message);
+    errorSwal("Error de conexión: ", error.message);
   }
 };
-
-
 
   // Estilos inline como fallback si Tailwind no funciona
   const containerStyle = {

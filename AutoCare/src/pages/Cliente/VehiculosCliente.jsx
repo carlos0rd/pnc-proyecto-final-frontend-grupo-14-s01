@@ -34,7 +34,13 @@ useEffect(() => {
       if (!res.ok) throw new Error("Error al obtener vehículos");
       return res.json();
     })
-    .then((data) => setVehiculosData(data))
+   .then((data) => {
+   // ajusta al formato que realmente necesites
+   const lista = Array.isArray(data) ? data                // ← el backend devuelve un array
+               : Array.isArray(data.data) ? data.data      // ← backend devuelve { data:[…] }
+               : [];                                       // ← cualquier otro caso
+   setVehiculosData(lista);
+ })
     .catch((err) => console.error(err));
 }, [navigate]);
 
@@ -310,12 +316,18 @@ useEffect(() => {
           <h1 style={titleStyle}>Menú Vehículos</h1>
         </div>
 
+        {vehiculosData.length === 0 && (
+          <div style={{ textAlign: "center", color: "#6b7280", fontSize: "1.2rem" }}>
+            No tienes vehículos registrados.
+          </div>
+        )}
+
         {/* Lista de Vehículos */}
         <div style={vehiculosContainerStyle}>
           {vehiculosData.map((vehiculo) => (
             <div key={vehiculo.id} style={vehiculoCardStyle}>
               <img
-                src={vehiculo.imagen || "/placeholder.svg"}
+                src={vehiculo.imagen? `${import.meta.env.VITE_API_URL}${vehiculo.imagen}`: "/placeholder.svg"}
                 alt={`${vehiculo.marca} ${vehiculo.modelo}`}
                 style={vehiculoImageStyle}
               />

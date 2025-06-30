@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
+import { ok, warn, error as errorSwal, confirm } from "../../utils/alerts"
 
-/* Cambia esta URL a la de tu backend.
-   También puedes exponer VITE_API_URL en tu .env y quedarte solo con la primera parte */
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
 
 const GestionUsuarios = () => {
   const [activeMenu, setActiveMenu]      = useState("usuarios")
   const [userData, setUserData]          = useState(null)
-  const [usuarios, setUsuarios]          = useState([])         // ← lista real desde BD
+  const [usuarios, setUsuarios]          = useState([])         
   const [searchTerm, setSearchTerm]      = useState("")
   const [showEditModal, setShowEditModal]= useState(false)
   const [selectedUser, setSelectedUser]  = useState(null)
@@ -25,13 +24,12 @@ const GestionUsuarios = () => {
   const navigate = useNavigate()
 
   /* ---------- Helpers de API ---------- */
-  const token = localStorage.getItem("token")            // tu middleware JWT lo exige
+  const token = localStorage.getItem("token")            
   const authHeaders = { Authorization: `Bearer ${token}` }
 
   const fetchUsuarios = async () => {
     try {
       const { data } = await axios.get(`${API_BASE_URL}/usuarios`, { headers: authHeaders })
-      /* backend devuelve: id, nombre_completo, email, telefono, celular, rol_id */
       const parsed = data.map(u => ({
         id    : u.id,
         name  : u.nombre_completo,
@@ -48,8 +46,6 @@ const GestionUsuarios = () => {
   }
 
   const updateUsuario = async (id, payload) => {
-    /* Si el admin cambia el rol llamamos al endpoint /admin/:id,
-       de lo contrario basta con PUT /:id */
     const url =
       payload.rol_id !== undefined
         ? `${API_BASE_URL}/usuarios/admin/${id}`
@@ -99,6 +95,11 @@ const GestionUsuarios = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault()
+
+    if (!editFormData.name.trim() || !editFormData.email.trim()){
+      return warn("Campos obligatorios", "Nombre y correo no puede estar vacíos")
+    }
+
     try {
       /* Mapear a campos esperados por tu backend */
       const payload = {
@@ -117,23 +118,26 @@ const GestionUsuarios = () => {
       await updateUsuario(selectedUser.id, payload)
       await fetchUsuarios()
       setShowEditModal(false)
-      alert("Usuario actualizado exitosamente")
+      await ok("Usuario actualizado", "Los cambios se guardaron correctamente")
     } catch (err) {
       console.error(err)
-      alert("Error al actualizar usuario")
+      errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
     }
   }
 
   const handleDeleteUser = async () => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar esta cuenta?")) return
+    const aceptado = await confirm("¿Eliminar usuario?","Esta acción es irreversible")
+    if (!aceptado) return
+
     try {
       await deleteUsuario(selectedUser.id)
       await fetchUsuarios()
       setShowEditModal(false)
-      alert("Usuario eliminado exitosamente")
+
+      await ok("Usuario eliminado", "La cuenta se eliminó correctamente")       
     } catch (err) {
       console.error(err)
-      alert("Error al eliminar usuario")
+      errorSwal("No se pudo eliminar", err.response?.data?.message || "Error desconocido")
     }
   }
 
@@ -172,7 +176,6 @@ const GestionUsuarios = () => {
     )
   }
 
-  /* ======  ESTILOS (idénticos a los originales)  ====== */
   const containerStyle = { display: "flex", minHeight: "100vh", backgroundColor: "#f5f5f5" }
 
   const sidebarStyle = {
@@ -186,12 +189,16 @@ const GestionUsuarios = () => {
   }
 
   const logoCircleStyle = {
-    width: "120px", height: "120px", backgroundColor: "white",
-    borderRadius: "50%", display: "flex", alignItems: "center",
-    justifyContent: "center", padding: "1rem", marginBottom: "1rem",
+    width: "120px",
+    height: "120px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   }
 
-  const logoStyle           = { width: "80px", height: "80px", objectFit: "contain" }
+  const logoStyle           = { width: "100%", height: "100%", objectFit: "contain" }
   const adminLabelStyle     = { fontSize: "1.2rem", fontWeight: 600, color: "white", textAlign: "center", marginBottom: "1rem" }
   const menuSectionStyle    = { flex: 1, padding: "1rem 0" }
   const menuItemStyle       = {
@@ -202,7 +209,7 @@ const GestionUsuarios = () => {
   const logoutStyle         = { padding: "1.5rem", borderTop: "1px solid rgba(255,255,255,0.1)" }
   const logoutButtonStyle   = {
     width: "100%", padding: ".75rem", backgroundColor: "transparent", color: "white",
-    border: "1px solid rgba(255,255,255,0.3)", borderRadius: ".375rem", cursor: "pointer", fontSize: "1rem", transition: "all .3s",
+    border: "1px solid rgba(255,255,255,0.3)", borderRadius: ".375rem", cursor: "pointer", fontSize: "1rem", transition: "all 0.3s ease",
   }
 
   const mainContentStyle = { flex: 1, padding: "3rem", backgroundColor: "#f8f9fa" }
@@ -226,7 +233,7 @@ const GestionUsuarios = () => {
     padding: ".5rem 1rem", fontSize: ".875rem", fontWeight: 500, cursor: "pointer", transition: "all .3s",
   }
 
-  /* ---- estilos del modal: igual al original ---- */
+  /* ---- estilos del modal ---- */
   const modalOverlayStyle       = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,.7)",
                                     display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }
   const modalStyle              = { backgroundColor: "white", borderRadius: "1rem", padding: "2rem", width: "100%",
@@ -283,7 +290,7 @@ const GestionUsuarios = () => {
             onMouseOver={e=>e.currentTarget.style.backgroundColor="rgba(255,255,255,.1)"}
             onMouseOut ={e=>e.currentTarget.style.backgroundColor="transparent"}
           >
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </div>
