@@ -23,6 +23,11 @@ const ServiciosClienteDesdeMecanico = () => {
   const navigate = useNavigate()
   const { vehiculoId, reparacionId } = useParams()
 
+  const [repuestosCatalogo, setRepuestosCatalogo] = useState([])
+  const [addRepuestos, setAddRepuestos] = useState([
+    { repuesto_id: "", cantidad: 1 },
+  ])
+
   // Estado para el modal de agregar servicio
   const [showAddModal, setShowAddModal]  = useState(false);
   const [addFormData,  setAddFormData]   = useState({
@@ -34,52 +39,57 @@ const ServiciosClienteDesdeMecanico = () => {
   });
 
   useEffect(() => {
-  // Verificar autenticación y rol del usuario
-  const isAuthenticated = localStorage.getItem("isAuthenticated");
-  const currentUser     = localStorage.getItem("currentUser");
+    // Verificar autenticación y rol del usuario
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    const currentUser     = localStorage.getItem("currentUser");
 
-  if (!isAuthenticated || !currentUser) {
-    navigate("/");
-    return;
-  }
-
-  const user = JSON.parse(currentUser);
-  if (user.rol_id !== 2) {
-    navigate(user.rol_id === 3 ? "/dashboard-admin" : "/dashboard-cliente");
-    return;
-  }
-  setUserData(user);
-
-  
-  (async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      
-      const repRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/reparaciones/${reparacionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setReparacionInfo(repRes.data);         
-
-      const servRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/servicios/reparacion/${reparacionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setServicios(Array.isArray(servRes.data) ? servRes.data : []);
-      
-      const vehRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/vehiculos/${vehiculoId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setVehiculoData(vehRes.data);
-
-    } catch (err) {
-      console.error(err);
-      navigate(`/reparaciones-mecanico/${vehiculoId}`);
+    if (!isAuthenticated || !currentUser) {
+      navigate("/");
+      return;
     }
-  })();
-}, [vehiculoId, reparacionId, navigate]);
+
+    const user = JSON.parse(currentUser);
+    if (user.rol_id !== 2) {
+      navigate(user.rol_id === 3 ? "/dashboard-admin" : "/dashboard-cliente");
+      return;
+    }
+    setUserData(user);
+
+    (async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const repRes = await axios.get(
+          `${import.meta.env.VITE_API_URL}/reparaciones/${reparacionId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setReparacionInfo(repRes.data);         
+
+        const servRes = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/servicios/reparacion/${reparacionId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setServicios(Array.isArray(servRes.data) ? servRes.data : []);
+        
+        const vehRes = await axios.get(
+          `${import.meta.env.VITE_API_URL}/vehiculos/${vehiculoId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setVehiculoData(vehRes.data);
+
+        //Obtener lista de repuestos
+        const repuestosRes = await axios.get(
+          `${import.meta.env.VITE_API_URL}/repuestos`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setRepuestosCatalogo(repuestosRes.data);
+
+      } catch (err) {
+        console.error(err);
+        navigate(`/reparaciones-mecanico/${vehiculoId}`);
+      }
+    })();
+  }, [vehiculoId, reparacionId, navigate]);
 
   // Estilos inline
   const containerStyle = {
@@ -392,6 +402,50 @@ const ServiciosClienteDesdeMecanico = () => {
     transition: "background-color 0.3s ease",
   }
 
+  // Estilos para la sección de repuestos en el modal
+  const repuestosSectionTitleStyle = {
+    fontSize: "1rem",
+    fontWeight: "600",
+    color: "#374151",
+    margin: "1rem 0 0.5rem 0",
+  }
+
+  const repuestoRowStyle = {
+    display: "flex",
+    gap: "0.5rem",
+    marginBottom: "0.5rem",
+  }
+
+  const repuestoCantidadInputStyle = {
+    width: "80px",
+    padding: "0.5rem",
+    border: "2px solid #d1d5db",
+    borderRadius: "0.375rem",
+    fontSize: "0.9rem",
+  }
+
+  const addRepuestoButtonStyle = {
+    padding: "0.5rem 1rem",
+    backgroundColor: "#e5e7eb",
+    color: "#374151",
+    border: "none",
+    borderRadius: "0.375rem",
+    fontSize: "0.875rem",
+    fontWeight: "500",
+    cursor: "pointer",
+    marginTop: "0.5rem",
+  }
+
+  const removeRepuestoButtonStyle = {
+    padding: "0.4rem 0.6rem",
+    backgroundColor: "#ef4444",
+    color: "white",
+    border: "none",
+    borderRadius: "0.375rem",
+    fontSize: "0.75rem",
+    cursor: "pointer",
+  }
+
   const handleLogout = () => {
     localStorage.removeItem("currentUser")
     localStorage.removeItem("isAuthenticated")
@@ -419,15 +473,15 @@ const ServiciosClienteDesdeMecanico = () => {
   }
 
   const handleEditChange = ({target}) => {
-   setEditFormData({ ...editFormData, [target.name]: target.value });
+    setEditFormData({ ...editFormData, [target.name]: target.value });
   }
 
   const handleEditSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if(!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
-    return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
-  }
+    if(!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
+      return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
+    }
 
     try {
       const token = localStorage.getItem("token");
@@ -461,44 +515,68 @@ const ServiciosClienteDesdeMecanico = () => {
     }
   };
 
-    const handleAddChange = ({ target }) =>
+  const handleAddChange = ({ target }) =>
     setAddFormData({ ...addFormData, [target.name]: target.value });
 
-    const handleAddSubmit = async (e) => {
-      e.preventDefault();
+  // ---- NUEVOS handlers para repuestos en el modal de "Nuevo servicio" ----
 
-      if(!addFormData.nombre_servicio.trim() || !addFormData.descripcion.trim()) {
-        return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
-      }
+  const handleAddRepuestoRow = () => {
+    setAddRepuestos((prev) => [...prev, { repuesto_id: "", cantidad: 1 }]);
+  };
 
-      try {
-        const token = localStorage.getItem("token");
-        await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/servicios`,
-          {
-            ...addFormData,
-            precio: parseFloat(addFormData.precio) || 0,
-            reparacion_id: reparacionId,         
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+  const handleRemoveRepuestoRow = (index) => {
+    setAddRepuestos((prev) => prev.filter((_, i) => i !== index));
+  };
 
-        // Refrescar la lista localmente 
-        setServicios((prev) => [...prev, { ...addFormData, id: Date.now() }]);
-        setShowAddModal(false);
-        setAddFormData({
-          nombre_servicio: "",
-          descripcion: "",
-          fecha_inicio: "",
-          fecha_fin: "",
-          precio: "",
-        });
-        await ok("Servicio agregado", "Se regsitró correctamente");
-      } catch (err) {
-        console.error(err)
-        errorSwal("Error al agregar", err.response?.data?.message || "Intenta más tarde")
-      }
-    };
+  const handleChangeRepuestoRow = (index, field, value) => {
+    setAddRepuestos((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      )
+    );
+  };
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+
+    if(!addFormData.nombre_servicio.trim() || !addFormData.descripcion.trim()) {
+      return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
+    }
+
+    // Aquí solo mostramos en consola los repuestos seleccionados
+    // Cuando tengas backend, los envías en el body del POST
+    console.log("Repuestos seleccionados para este servicio:", addRepuestos);
+
+    try {
+      const token = localStorage.getItem("token");
+     await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/servicios`,
+        {
+          ...addFormData,
+          precio: parseFloat(addFormData.precio) || 0,
+          reparacion_id: reparacionId,
+          repuestos: addRepuestos,   // lista de repuestos
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Refrescar la lista localmente 
+      setServicios((prev) => [...prev, { ...addFormData, id: Date.now() }]);
+      setShowAddModal(false);
+      setAddFormData({
+        nombre_servicio: "",
+        descripcion: "",
+        fecha_inicio: "",
+        fecha_fin: "",
+        precio: "",
+      });
+      setAddRepuestos([{ repuesto_id: "", cantidad: 1 }]);
+      await ok("Servicio agregado", "Se registró correctamente");
+    } catch (err) {
+      console.error(err)
+      errorSwal("Error al agregar", err.response?.data?.message || "Intenta más tarde")
+    }
+  };
 
 
   if (!userData || !vehiculoData || !reparacionInfo) {
@@ -582,33 +660,33 @@ const ServiciosClienteDesdeMecanico = () => {
         </div>
 
         {/* Servicios Section */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",           
-              marginBottom: "1rem"
-            }}
-          >
-            <h2 style={sectionTitleStyle}>Servicios</h2>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",           
+            marginBottom: "1rem"
+          }}
+        >
+          <h2 style={sectionTitleStyle}>Servicios</h2>
 
-            <button
-              onClick={() => setShowAddModal(true)}
-              style={{
-                backgroundColor: "#22c55e",
-                color: "white",
-                padding: "0.6rem 1.2rem",
-                borderRadius: "0.375rem",
-                fontWeight: 600,
-                border: "none",
-                cursor: "pointer"
-              }}
-              onMouseOver={e => (e.target.style.backgroundColor = "#16a34a")}
-              onMouseOut={e => (e.target.style.backgroundColor = "#22c55e")}
-            >
-              Agregar Servicio
-            </button>
-          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            style={{
+              backgroundColor: "#22c55e",
+              color: "white",
+              padding: "0.6rem 1.2rem",
+              borderRadius: "0.375rem",
+              fontWeight: 600,
+              border: "none",
+              cursor: "pointer"
+            }}
+            onMouseOver={e => (e.target.style.backgroundColor = "#16a34a")}
+            onMouseOut={e => (e.target.style.backgroundColor = "#22c55e")}
+          >
+            Agregar Servicio
+          </button>
+        </div>
         {/* Lista de Servicios */}
         
         {servicios.length === 0 && (
@@ -805,6 +883,69 @@ const ServiciosClienteDesdeMecanico = () => {
                 />
               </div>
 
+              {/* -------- NUEVA SECCIÓN: Repuestos del servicio -------- */}
+              <div style={{ marginTop: "1rem" }}>
+                <div style={repuestosSectionTitleStyle}>Repuestos del servicio</div>
+                <p style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "0.5rem" }}>
+                  Seleccione los repuestos que se utilizarán en este servicio y su cantidad.
+                </p>
+
+                {addRepuestos.map((row, index) => (
+                  <div key={index} style={repuestoRowStyle}>
+                    <select
+                      style={selectStyle}
+                      value={row.repuesto_id}
+                      onChange={(e) =>
+                        handleChangeRepuestoRow(index, "repuesto_id", e.target.value)
+                      }
+                    >
+                      <option value="">-- Seleccione un repuesto --</option>
+                      {repuestosCatalogo.map((r) => {
+                        const precioNumber = Number(r.precio_unitario);
+                        const precioFormateado = !isNaN(precioNumber)
+                          ? precioNumber.toFixed(2)
+                          : r.precio_unitario; // en caso de que sea nulo
+
+                        return (
+                          <option key={r.id} value={r.id}>
+                            {r.nombre} {precioFormateado ? `($${precioFormateado})` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    <input
+                      type="number"
+                      min="1"
+                      value={row.cantidad}
+                      onChange={(e) =>
+                        handleChangeRepuestoRow(index, "cantidad", e.target.value)
+                      }
+                      style={repuestoCantidadInputStyle}
+                    />
+
+                    {addRepuestos.length > 1 && (
+                      <button
+                        type="button"
+                        style={removeRepuestoButtonStyle}
+                        onClick={() => handleRemoveRepuestoRow(index)}
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  style={addRepuestoButtonStyle}
+                  onClick={handleAddRepuestoRow}
+                >
+                  + Agregar otro repuesto
+                </button>
+              </div>
+              {/* ------------------------------------------------------- */}
+
               <div style={buttonContainerStyle}>
                 <button
                   type="submit"
@@ -817,7 +958,10 @@ const ServiciosClienteDesdeMecanico = () => {
                 <button
                   type="button"
                   style={cancelButtonStyle}
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setAddRepuestos([{ repuesto_id: "", cantidad: 1 }])
+                  }}
                   onMouseOver={(e) => (e.target.style.backgroundColor = "#4b5563")}
                   onMouseOut={(e) => (e.target.style.backgroundColor = "#6b7280")}
                 >
