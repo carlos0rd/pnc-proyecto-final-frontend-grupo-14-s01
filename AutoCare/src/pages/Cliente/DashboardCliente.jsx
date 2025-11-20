@@ -141,6 +141,8 @@ const DashboardCliente = () => {
   const handleMenuClick = (menu) => {
     if (menu === "vehiculos") {
       navigate("/vehiculos-cliente")
+    } else if (menu === "facturas") {
+      navigate("/facturas-cliente")
     } else {
       setActiveMenu(menu)
     }
@@ -422,6 +424,13 @@ const DashboardCliente = () => {
             onClick={() => handleMenuClick("vehiculos")}
           >
             Menu vehículos
+          </div>
+
+          <div
+            style={activeMenu === "facturas" ? activeMenuItemStyle : menuItemStyle}
+            onClick={() => handleMenuClick("facturas")}
+          >
+            Facturas
           </div>
 
           <div
