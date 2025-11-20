@@ -23,10 +23,12 @@ const ReparacionesMecanico = () => {
     precio:          "",
     status:         "En curso", // Valor por defecto
   });
+  const [file, setFile] = useState(null); // Foto "antes" al crear
 
   // Estado para el modal de edición
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentRep, setCurrentRep] = useState(null);
+  const [fileAfter, setFileAfter] = useState(null); // Foto "después" al editar
   const [editFormData, setEditFormData] = useState({
     tipo_reparacion: "",
     descripcion:     "",
@@ -228,6 +230,9 @@ const ReparacionesMecanico = () => {
     cursor: "pointer",
     transition: "transform 0.2s, box-shadow 0.2s",
     position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
   }
 
   const reparacionTitleStyle = {
@@ -243,12 +248,6 @@ const ReparacionesMecanico = () => {
     margin: "0.25rem 0",
   }
 
-  const statusContainerStyle = {
-    position: "absolute",
-    top: "1.5rem",
-    right: "1.5rem",
-    textAlign: "right",
-  }
    const inputStyle = {
     width: "100%",
     padding: "0.75rem",
@@ -263,6 +262,34 @@ const ReparacionesMecanico = () => {
     ...inputStyle,
     minHeight: "100px",
     resize: "vertical",
+  }
+
+  const imageUploadSectionStyle = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    marginBottom: "1.5rem",
+  }
+
+  const imageUploadAreaStyle = {
+    width: "200px",
+    height: "150px",
+    border: "2px dashed #d1d5db",
+    borderRadius: "0.5rem",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    backgroundColor: "#f9fafb",
+    marginBottom: "1rem",
+    transition: "border-color 0.3s ease",
+  }
+
+  const cameraIconStyle = {
+    fontSize: "3rem",
+    color: "#6b7280",
+    marginBottom: "0.5rem",
   }
 
 
@@ -318,6 +345,12 @@ const ReparacionesMecanico = () => {
     const handleAddChange = ({ target }) =>
       setAddFormData({ ...addFormData, [target.name]: target.value });
 
+    const handleImageUpload = (e) => {
+      const selected = e.target.files?.[0];
+      if (!selected) return;
+      setFile(selected);
+    };
+
     const handleAddSubmit = async (e) => {
       e.preventDefault();
 
@@ -327,20 +360,64 @@ const ReparacionesMecanico = () => {
 
       try {
         const token = localStorage.getItem("token");
+        
+        // Verificar que el token existe y no está vacío
+        if (!token || token.trim() === "") {
+          errorSwal("Error de autenticación", "No hay token de sesión. Por favor, inicia sesión nuevamente.");
+          navigate("/");
+          return;
+        }
 
+        // Limpiar el token de espacios en blanco
+        const cleanToken = token.trim();
+
+        const formData = new FormData();
+        formData.append("tipo_reparacion", addFormData.tipo_reparacion.trim());
+        formData.append("descripcion", addFormData.descripcion.trim());
+        
+        // Solo agregar fechas si tienen valor
+        if (addFormData.fecha_inicio) {
+          formData.append("fecha_inicio", addFormData.fecha_inicio);
+        }
+        if (addFormData.fecha_fin) {
+          formData.append("fecha_fin", addFormData.fecha_fin);
+        }
+        
+        // Precio: convertir a número o 0
+        const precio = addFormData.precio ? parseFloat(addFormData.precio) : 0;
+        formData.append("precio", precio.toString());
+        
+        formData.append("status", addFormData.status || "Pendiente");
+        formData.append("vehiculo_id", id);
+        
+        // Solo agregar imagen "antes" si existe
+        if (file) {
+          formData.append("imagen_antes", file); // Nombre del campo para foto antes
+        }
+
+        // Configurar headers explícitamente
+        const config = {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`,
+          },
+        };
+
+        // Log para debugging (remover en producción)
+        console.log("Enviando petición a:", `${import.meta.env.VITE_API_URL}/reparaciones`);
+        console.log("Token presente:", !!cleanToken);
+        console.log("Headers:", config.headers);
+
+        // NO establecer Content-Type manualmente cuando usas FormData
+        // axios lo establece automáticamente con el boundary correcto
         await axios.post(
           `${import.meta.env.VITE_API_URL}/reparaciones`,
-          {
-            ...addFormData,
-            precio: parseFloat(addFormData.precio) || 0,
-            vehiculo_id: id,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
+          formData,
+          config
         );
 
         const repRes = await axios.get(
           `${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${cleanToken}` } }
         );
         setReparaciones(repRes.data);  
 
@@ -353,10 +430,35 @@ const ReparacionesMecanico = () => {
           precio: "",
           status: "Pendiente",
         });
+        setFile(null);
         await ok("Reparación registrada", "Se guardó correctamente")
       } catch (err) {
-        console.error(err)
-        errorSwal("Error al registrar", err.response?.data?.message || "Intenta más tarde")
+        console.error("Error completo:", err);
+        
+        // Manejo de errores más específico
+        if (err.response?.status === 500) {
+          const errorMessage = err.response?.data?.message || err.response?.data?.error || "Error interno del servidor";
+          errorSwal(
+            "Error del servidor", 
+            `El servidor encontró un error: ${errorMessage}. Verifica los datos ingresados o contacta al administrador.`
+          );
+        } else if (err.response?.status === 403) {
+          errorSwal(
+            "Acceso denegado", 
+            "No tienes permisos para realizar esta acción. Verifica que tu sesión sea válida."
+          );
+        } else if (err.response?.status === 401) {
+          errorSwal("Sesión expirada", "Por favor, inicia sesión nuevamente.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("currentUser");
+          navigate("/");
+        } else {
+          errorSwal(
+            "Error al registrar", 
+            err.response?.data?.message || err.response?.data?.error || "Intenta más tarde"
+          );
+        }
       }
     };
 
@@ -370,11 +472,18 @@ const ReparacionesMecanico = () => {
     precio:          rep.precio ?? "",
     status:          rep.status,
   });
+  setFileAfter(null); // Resetear foto después al abrir modal
   setShowEditModal(true);
 };
 
 const handleEditChange = ({ target }) =>
   setEditFormData({ ...editFormData, [target.name]: target.value });
+
+const handleImageUploadAfter = (e) => {
+  const selected = e.target.files?.[0];
+  if (!selected) return;
+  setFileAfter(selected);
+};
 
 const handleEditSubmit = async (e) => {
   e.preventDefault();
@@ -385,26 +494,74 @@ const handleEditSubmit = async (e) => {
 
   try {
     const token = localStorage.getItem("token");
-    await axios.put(
-      `${import.meta.env.VITE_API_URL}/reparaciones/${currentRep.id}`,
-      {
-        ...editFormData,
-        precio: parseFloat(editFormData.precio) || 0,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    
+    if (!token || token.trim() === "") {
+      errorSwal("Error de autenticación", "No hay token de sesión. Por favor, inicia sesión nuevamente.");
+      navigate("/");
+      return;
+    }
+
+    const cleanToken = token.trim();
+
+    // Si hay foto después, usar FormData; si no, JSON normal
+    if (fileAfter) {
+      const formData = new FormData();
+      formData.append("tipo_reparacion", editFormData.tipo_reparacion.trim());
+      formData.append("descripcion", editFormData.descripcion.trim());
+      if (editFormData.fecha_inicio) formData.append("fecha_inicio", editFormData.fecha_inicio);
+      if (editFormData.fecha_fin) formData.append("fecha_fin", editFormData.fecha_fin);
+      formData.append("precio", (parseFloat(editFormData.precio) || 0).toString());
+      formData.append("status", editFormData.status);
+      formData.append("imagen_despues", fileAfter); // Nombre del campo para foto después
+
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/reparaciones/${currentRep.id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${cleanToken}`,
+          },
+        }
+      );
+    } else {
+      // Sin foto, enviar como JSON normal
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/reparaciones/${currentRep.id}`,
+        {
+          ...editFormData,
+          precio: parseFloat(editFormData.precio) || 0,
+        },
+        { headers: { Authorization: `Bearer ${cleanToken}` } }
+      );
+    }
 
     /* refrescamos lista sin recargar la página */
-    setReparaciones((prev) =>
-      prev.map((r) =>
-        r.id === currentRep.id ? { ...r, ...editFormData } : r
-      )
+    const repRes = await axios.get(
+      `${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`,
+      { headers: { Authorization: `Bearer ${cleanToken}` } }
     );
+    setReparaciones(repRes.data);
+
     setShowEditModal(false);
+    setFileAfter(null);
     await ok("Reparación actualizada", "Los cambios se guardaron")
   } catch (err) {
-    console.error(err)
-    errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
+    console.error("Error completo:", err);
+    
+    if (err.response?.status === 500) {
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Error interno del servidor";
+      errorSwal("Error del servidor", `El servidor encontró un error: ${errorMessage}`);
+    } else if (err.response?.status === 403) {
+      errorSwal("Acceso denegado", "No tienes permisos para realizar esta acción.");
+    } else if (err.response?.status === 401) {
+      errorSwal("Sesión expirada", "Por favor, inicia sesión nuevamente.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("currentUser");
+      navigate("/");
+    } else {
+      errorSwal("Error al actualizar", err.response?.data?.message || err.response?.data?.error || "Intenta más tarde");
+    }
   }
 };
 
@@ -526,29 +683,109 @@ const handleEditSubmit = async (e) => {
                 e.currentTarget.style.boxShadow  = "0 1px 3px rgba(0,0,0,0.1)";
               }}
             >
-              <div>
-                <h3 style={reparacionTitleStyle}>Reparación #{rep.id}</h3>
-                <p style={reparacionDetailStyle}>
-                  Fecha de Inicio: {rep.fecha_inicio}
-                </p>
-                <p style={reparacionDetailStyle}>
-                  Fecha de Finalización: {rep.fecha_fin}
-                </p>
+              {/* Header con título y status */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={reparacionTitleStyle}>Reparación #{rep.id}</h3>
+                  <p style={reparacionDetailStyle}>
+                    Fecha de Inicio: {rep.fecha_inicio}
+                  </p>
+                  <p style={reparacionDetailStyle}>
+                    Fecha de Finalización: {rep.fecha_fin}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
+                  <p style={valorStyle}>Valor: ${rep.precio}</p>
+                </div>
               </div>
 
-            
-              <div style={statusContainerStyle}>
-                <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
-                <p style={valorStyle}>Valor: ${rep.precio}</p>
+              {/* Fotos antes y después */}
+              {(rep.imagen_antes || rep.imagen_despues) && (
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: "1rem",
+                  marginTop: "0.5rem"
+                }}>
+                  {/* Foto Antes */}
+                  {rep.imagen_antes && (
+                    <div style={{
+                      borderRadius: "0.375rem",
+                      overflow: "hidden",
+                      border: "2px solid #e5e7eb",
+                      backgroundColor: "#f9fafb"
+                    }}>
+                      <div style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: "#6b7280",
+                        padding: "0.5rem",
+                        backgroundColor: "#f3f4f6",
+                        textAlign: "center"
+                      }}>
+                        Antes
+                      </div>
+                      <img
+                        src={`${import.meta.env.VITE_API_URL}${rep.imagen_antes}`}
+                        alt="Antes de la reparación"
+                        style={{
+                          width: "100%",
+                          height: "120px",
+                          objectFit: "cover",
+                          display: "block"
+                        }}
+                        onError={(e) => {
+                          e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                        }}
+                      />
+                    </div>
+                  )}
 
-                {/* Botón para el modal de editar reparación */}
+                  {/* Foto Después */}
+                  {rep.imagen_despues && (
+                    <div style={{
+                      borderRadius: "0.375rem",
+                      overflow: "hidden",
+                      border: "2px solid #e5e7eb",
+                      backgroundColor: "#f9fafb"
+                    }}>
+                      <div style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: "#6b7280",
+                        padding: "0.5rem",
+                        backgroundColor: "#f3f4f6",
+                        textAlign: "center"
+                      }}>
+                        Después
+                      </div>
+                      <img
+                        src={`${import.meta.env.VITE_API_URL}${rep.imagen_despues}`}
+                        alt="Después de la reparación"
+                        style={{
+                          width: "100%",
+                          height: "120px",
+                          objectFit: "cover",
+                          display: "block"
+                        }}
+                        onError={(e) => {
+                          e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Botón para el modal de editar reparación */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();         
                     openEditModal(rep);          
                   }}
                   style={{
-                    marginTop: "0.5rem",
                     padding: "0.4rem 0.8rem",
                     background: "#2D3573",
                     color: "#fff",
@@ -598,6 +835,48 @@ const handleEditSubmit = async (e) => {
             </p>
 
             <form onSubmit={handleAddSubmit}>
+              {/* Sección de imagen "antes" */}
+              <div style={imageUploadSectionStyle}>
+                <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                  Foto antes de la reparación (opcional)
+                </label>
+                <div
+                  style={imageUploadAreaStyle}
+                  onClick={() => document.getElementById("reparacionImageInput").click()}
+                  onMouseOver={(e) => (e.currentTarget.style.borderColor = "#2D3573")}
+                  onMouseOut={(e) => (e.currentTarget.style.borderColor = "#d1d5db")}
+                >
+                  {file ? (
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="preview antes"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "6px",
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <div style={cameraIconStyle}>📷</div>
+                      <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                        Click para agregar foto antes
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* Input oculto para la imagen antes */}
+                <input
+                  id="reparacionImageInput"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: "none" }}
+                />
+              </div>
+
               <input
                 style={inputStyle}
                 type="text"
@@ -632,6 +911,17 @@ const handleEditSubmit = async (e) => {
                 name="fecha_fin"
                 value={addFormData.fecha_fin}
                 onChange={handleAddChange}
+              />
+
+              <input
+                style={inputStyle}
+                type="number"
+                name="precio"
+                placeholder="Precio"
+                value={addFormData.precio}
+                onChange={handleAddChange}
+                step="0.01"
+                min="0"
               />
 
               <select
@@ -781,6 +1071,50 @@ const handleEditSubmit = async (e) => {
                   <option value="Finalizado">Finalizado</option>
                   <option value="Rechazado por el cliente">Rechazado por el cliente</option>
                 </select>
+
+                {/* Campo para foto "después" - especialmente útil cuando se finaliza */}
+                {(editFormData.status === "Finalizado" || fileAfter) && (
+                  <div style={imageUploadSectionStyle}>
+                    <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block" }}>
+                      Foto después de la reparación (opcional)
+                    </label>
+                    <div
+                      style={imageUploadAreaStyle}
+                      onClick={() => document.getElementById("reparacionImageAfterInput").click()}
+                      onMouseOver={(e) => (e.currentTarget.style.borderColor = "#2D3573")}
+                      onMouseOut={(e) => (e.currentTarget.style.borderColor = "#d1d5db")}
+                    >
+                      {fileAfter ? (
+                        <img
+                          src={URL.createObjectURL(fileAfter)}
+                          alt="preview después"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            borderRadius: "6px",
+                          }}
+                        />
+                      ) : (
+                        <>
+                          <div style={cameraIconStyle}>📷</div>
+                          <span style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                            Click para agregar foto después
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Input oculto para la imagen después */}
+                    <input
+                      id="reparacionImageAfterInput"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUploadAfter}
+                      style={{ display: "none" }}
+                    />
+                  </div>
+                )}
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
                   <button

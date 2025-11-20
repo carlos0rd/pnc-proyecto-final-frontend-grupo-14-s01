@@ -27,8 +27,12 @@ const Login = () => {
         body: JSON.stringify({ email, contrasena: password })
       });
   
-      const { token, error } = await loginRes.json();
-      if (!loginRes.ok) throw new Error(error || "Credenciales incorrectas");
+      const data = await loginRes.json();
+      if (!loginRes.ok) {
+        throw new Error(data.error || "Credenciales incorrectas");
+      }
+      
+      const { token } = data;
   
       localStorage.setItem("token", token);
       localStorage.setItem("isAuthenticated", "true");

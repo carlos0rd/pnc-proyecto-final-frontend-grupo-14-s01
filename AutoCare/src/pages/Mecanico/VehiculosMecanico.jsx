@@ -46,6 +46,13 @@ const VehiculosMecanico = () => {
   const fetchVehiculos = async (p = 1) => {
     try {
       const token = localStorage.getItem("token");
+      
+      if (!token) {
+        console.error("No hay token disponible");
+        setVehiculos([]);
+        return;
+      }
+
       const res = await axios.get(
        `${import.meta.env.VITE_API_URL}/vehiculos?page=${p}&limit=${limit}`,
        { headers: { Authorization: `Bearer ${token}` } }
@@ -56,6 +63,20 @@ const VehiculosMecanico = () => {
      setTotalPages(totalPages || 1);
     } catch (err) {
       console.error("Error al obtener vehículos:", err);
+      
+      // Manejo específico de errores
+      if (err.response?.status === 403) {
+        console.error("403 Forbidden - El backend está rechazando el acceso");
+        console.error("Detalles:", err.response?.data);
+        // No mostrar alerta aquí para evitar spam, solo log
+      } else if (err.response?.status === 401) {
+        console.error("401 Unauthorized - Token inválido o expirado");
+        localStorage.removeItem("token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("currentUser");
+        navigate("/");
+      }
+      
       setVehiculos([]);
     }
   };
@@ -403,6 +424,13 @@ const handleAddSubmit = async (e) => {
 
   try {
     const token = localStorage.getItem("token");
+    
+    // Verificar que el token existe
+    if (!token) {
+      errorSwal("Error de autenticación", "No hay token de sesión. Por favor, inicia sesión nuevamente.");
+      navigate("/");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("modelo",        addFormData.modelo);
@@ -413,13 +441,15 @@ const handleAddSubmit = async (e) => {
     formData.append("clienteEmail",  addFormData.clienteEmail);
     if (file) formData.append("imagen", file);
 
+    // NO establecer Content-Type manualmente cuando usas FormData
+    // axios lo establece automáticamente con el boundary correcto
     await axios.post(
       `${import.meta.env.VITE_API_URL}/vehiculos`,
       formData,
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
+          // Removido "Content-Type": axios lo maneja automáticamente
         },
       }
     );
@@ -436,8 +466,33 @@ const handleAddSubmit = async (e) => {
     setShowAddModal(false);
     await ok("Vehículo agregado", "Se registró correctamente")
   } catch (err) {
-    console.error(err)
-    errorSwal("Error al registrar", err.response?.data?.message || "Intenta más tarde")
+    console.error("Error completo:", err);
+    
+    // Manejo de errores más específico
+    if (err.response?.status === 403) {
+      errorSwal(
+        "Acceso denegado", 
+        "No tienes permisos para realizar esta acción. Verifica que tu sesión sea válida o contacta al administrador."
+      );
+      // Si el token es inválido, redirigir al login
+      if (err.response?.data?.message?.includes("token") || err.response?.data?.message?.includes("Token")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("currentUser");
+        navigate("/");
+      }
+    } else if (err.response?.status === 401) {
+      errorSwal("Sesión expirada", "Por favor, inicia sesión nuevamente.");
+      localStorage.removeItem("token");
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("currentUser");
+      navigate("/");
+    } else {
+      errorSwal(
+        "Error al registrar", 
+        err.response?.data?.message || err.response?.data?.error || "Intenta más tarde"
+      );
+    }
   }
 };
 
@@ -477,6 +532,14 @@ const handleAddSubmit = async (e) => {
     const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        errorSwal("Error de autenticación", "No hay token de sesión. Por favor, inicia sesión nuevamente.");
+        navigate("/");
+        return;
+      }
+
       const fd = new FormData();
       fd.append("modelo", editData.modelo);
       fd.append("marca",  editData.marca);
@@ -486,19 +549,35 @@ const handleAddSubmit = async (e) => {
 
       if (editData.imagen) fd.append("imagen", editData.imagen); // sólo si cambia
 
-      const token = localStorage.getItem("token");
-
+      // NO establecer Content-Type manualmente cuando usas FormData
       await axios.put(`${import.meta.env.VITE_API_URL}/vehiculos/${editData.id}`,
         fd,
-        { headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       
       await ok("Vehículo actualizado", "Los cambios se guardaron")
       setShowEditModal(false);
       fetchVehiculos();          // vuelve a pedir la lista → sin recargar la página
     } catch (err) {
-      console.error(err)
-    errorSwal("Error al guardar cambios", err.response?.data?.message || "Intenta más tarde")
+      console.error("Error completo:", err);
+      
+      if (err.response?.status === 403) {
+        errorSwal(
+          "Acceso denegado", 
+          "No tienes permisos para realizar esta acción. Verifica que tu sesión sea válida."
+        );
+      } else if (err.response?.status === 401) {
+        errorSwal("Sesión expirada", "Por favor, inicia sesión nuevamente.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("currentUser");
+        navigate("/");
+      } else {
+        errorSwal(
+          "Error al guardar cambios", 
+          err.response?.data?.message || err.response?.data?.error || "Intenta más tarde"
+        );
+      }
     }
   };
 

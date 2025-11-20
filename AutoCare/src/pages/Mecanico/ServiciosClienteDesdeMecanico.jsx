@@ -581,6 +581,87 @@ const ServiciosClienteDesdeMecanico = () => {
           </div>
         </div>
 
+        {/* Sección de Fotos Antes y Después */}
+        {(reparacionInfo.imagen_antes || reparacionInfo.imagen_despues) && (
+          <div style={{ marginBottom: "2rem" }}>
+            <h2 style={sectionTitleStyle}>Fotos de la Reparación</h2>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+              gap: "1.5rem",
+              marginTop: "1rem"
+            }}>
+              {/* Foto Antes */}
+              {reparacionInfo.imagen_antes && (
+                <div style={{
+                  backgroundColor: "white",
+                  borderRadius: "0.5rem",
+                  padding: "1rem",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                }}>
+                  <h3 style={{
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                    marginBottom: "0.75rem",
+                    textAlign: "center"
+                  }}>
+                    Antes de la Reparación
+                  </h3>
+                  <img
+                    src={`${import.meta.env.VITE_API_URL}${reparacionInfo.imagen_antes}`}
+                    alt="Antes de la reparación"
+                    style={{
+                      width: "100%",
+                      height: "250px",
+                      objectFit: "cover",
+                      borderRadius: "0.375rem",
+                      border: "2px solid #e5e7eb"
+                    }}
+                    onError={(e) => {
+                      e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Foto Después */}
+              {reparacionInfo.imagen_despues && (
+                <div style={{
+                  backgroundColor: "white",
+                  borderRadius: "0.5rem",
+                  padding: "1rem",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                }}>
+                  <h3 style={{
+                    fontSize: "1rem",
+                    fontWeight: 600,
+                    color: "#374151",
+                    marginBottom: "0.75rem",
+                    textAlign: "center"
+                  }}>
+                    Después de la Reparación
+                  </h3>
+                  <img
+                    src={`${import.meta.env.VITE_API_URL}${reparacionInfo.imagen_despues}`}
+                    alt="Después de la reparación"
+                    style={{
+                      width: "100%",
+                      height: "250px",
+                      objectFit: "cover",
+                      borderRadius: "0.375rem",
+                      border: "2px solid #e5e7eb"
+                    }}
+                    onError={(e) => {
+                      e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Servicios Section */}
           <div
             style={{

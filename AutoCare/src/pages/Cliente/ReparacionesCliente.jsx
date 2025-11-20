@@ -180,6 +180,9 @@ const ReparacionesCliente = () => {
     cursor: "pointer",
     transition: "transform 0.2s, box-shadow 0.2s",
     position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
   }
 
   const reparacionTitleStyle = {
@@ -195,12 +198,6 @@ const ReparacionesCliente = () => {
     margin: "0.25rem 0",
   }
 
-  const statusContainerStyle = {
-    position: "absolute",
-    top: "1.5rem",
-    right: "1.5rem",
-    textAlign: "right",
-  }
 
   const getStatusStyle = (status) => {
     let color = "#2D3573" // Default blue
@@ -334,18 +331,101 @@ const ReparacionesCliente = () => {
           reparaciones.map((rep) => (
             <div key={rep.id} style={reparacionCardStyle}
               onClick={() => handleReparacionClick(rep.id)}>
-              <h3 style={reparacionTitleStyle}>Reparación #{rep.id}</h3>
-              <p style={reparacionDetailStyle}>
-                Inicio: {new Date(rep.fecha_inicio).toLocaleDateString()}
-              </p>
-              <p style={reparacionDetailStyle}>
-                Fin:&nbsp;
-                {rep.fecha_fin ? new Date(rep.fecha_fin).toLocaleDateString() : "----"}
-              </p>
-              <div style={statusContainerStyle}>
-                <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
-                <p style={valorStyle}>Valor: ${Number(rep.precio).toFixed(2)}</p>
+              {/* Header con título y status */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={reparacionTitleStyle}>Reparación #{rep.id}</h3>
+                  <p style={reparacionDetailStyle}>
+                    Inicio: {new Date(rep.fecha_inicio).toLocaleDateString()}
+                  </p>
+                  <p style={reparacionDetailStyle}>
+                    Fin:&nbsp;
+                    {rep.fecha_fin ? new Date(rep.fecha_fin).toLocaleDateString() : "----"}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
+                  <p style={valorStyle}>Valor: ${Number(rep.precio).toFixed(2)}</p>
+                </div>
               </div>
+
+              {/* Fotos antes y después */}
+              {(rep.imagen_antes || rep.imagen_despues) && (
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: "1rem",
+                  marginTop: "0.5rem"
+                }}>
+                  {/* Foto Antes */}
+                  {rep.imagen_antes && (
+                    <div style={{
+                      borderRadius: "0.375rem",
+                      overflow: "hidden",
+                      border: "2px solid #e5e7eb",
+                      backgroundColor: "#f9fafb"
+                    }}>
+                      <div style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: "#6b7280",
+                        padding: "0.5rem",
+                        backgroundColor: "#f3f4f6",
+                        textAlign: "center"
+                      }}>
+                        Antes
+                      </div>
+                      <img
+                        src={`${import.meta.env.VITE_API_URL}${rep.imagen_antes}`}
+                        alt="Antes de la reparación"
+                        style={{
+                          width: "100%",
+                          height: "120px",
+                          objectFit: "cover",
+                          display: "block"
+                        }}
+                        onError={(e) => {
+                          e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Foto Después */}
+                  {rep.imagen_despues && (
+                    <div style={{
+                      borderRadius: "0.375rem",
+                      overflow: "hidden",
+                      border: "2px solid #e5e7eb",
+                      backgroundColor: "#f9fafb"
+                    }}>
+                      <div style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: "#6b7280",
+                        padding: "0.5rem",
+                        backgroundColor: "#f3f4f6",
+                        textAlign: "center"
+                      }}>
+                        Después
+                      </div>
+                      <img
+                        src={`${import.meta.env.VITE_API_URL}${rep.imagen_despues}`}
+                        alt="Después de la reparación"
+                        style={{
+                          width: "100%",
+                          height: "120px",
+                          objectFit: "cover",
+                          display: "block"
+                        }}
+                        onError={(e) => {
+                          e.target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZW4gbm8gZGlzcG9uaWJsZTwvdGV4dD48L3N2Zz4=";
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))
         )}
