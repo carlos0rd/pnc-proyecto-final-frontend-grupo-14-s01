@@ -20,7 +20,6 @@ const ReparacionesMecanico = () => {
     descripcion:     "",
     fecha_inicio:    "",
     fecha_fin:       "",
-    precio:          "",
     status:         "En curso", // Valor por defecto
   });
   const [file, setFile] = useState(null); // Foto "antes" al crear
@@ -35,6 +34,7 @@ const ReparacionesMecanico = () => {
     fecha_inicio:    "",
     fecha_fin:       "",
     status:          "",
+    // precio removed - it's calculated from services
   });
   
 
@@ -383,10 +383,7 @@ const ReparacionesMecanico = () => {
           formData.append("fecha_fin", addFormData.fecha_fin);
         }
         
-        // Precio: convertir a número o 0
-        const precio = addFormData.precio ? parseFloat(addFormData.precio) : 0;
-        formData.append("precio", precio.toString());
-        
+        // Price is now calculated from services, so we don't send it
         formData.append("status", addFormData.status || "Pendiente");
         formData.append("vehiculo_id", id);
         
@@ -427,7 +424,6 @@ const ReparacionesMecanico = () => {
           descripcion: "",
           fecha_inicio: "",
           fecha_fin: "",
-          precio: "",
           status: "Pendiente",
         });
         setFile(null);
@@ -469,7 +465,7 @@ const ReparacionesMecanico = () => {
     descripcion:     rep.descripcion,
     fecha_inicio:    rep.fecha_inicio?.slice(0,10) ?? "",
     fecha_fin:       rep.fecha_fin?.slice(0,10)   ?? "",
-    precio:          rep.precio ?? "",
+      // precio removed - it's calculated from services
     status:          rep.status,
   });
   setFileAfter(null); // Resetear foto después al abrir modal
@@ -510,7 +506,7 @@ const handleEditSubmit = async (e) => {
       formData.append("descripcion", editFormData.descripcion.trim());
       if (editFormData.fecha_inicio) formData.append("fecha_inicio", editFormData.fecha_inicio);
       if (editFormData.fecha_fin) formData.append("fecha_fin", editFormData.fecha_fin);
-      formData.append("precio", (parseFloat(editFormData.precio) || 0).toString());
+      // precio removed - it's calculated from services
       formData.append("status", editFormData.status);
       formData.append("imagen_despues", fileAfter); // Nombre del campo para foto después
 
@@ -529,7 +525,7 @@ const handleEditSubmit = async (e) => {
         `${import.meta.env.VITE_API_URL}/reparaciones/${currentRep.id}`,
         {
           ...editFormData,
-          precio: parseFloat(editFormData.precio) || 0,
+          // precio removed - it's calculated from services
         },
         { headers: { Authorization: `Bearer ${cleanToken}` } }
       );
@@ -696,7 +692,11 @@ const handleEditSubmit = async (e) => {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
-                  <p style={valorStyle}>Valor: ${rep.precio}</p>
+                  <p style={valorStyle}>
+                    Valor: {rep.precio === null || rep.precio === undefined || rep.precio === 0 
+                      ? "N/A" 
+                      : `$${Number(rep.precio).toFixed(2)}`}
+                  </p>
                 </div>
               </div>
 
@@ -913,16 +913,6 @@ const handleEditSubmit = async (e) => {
                 onChange={handleAddChange}
               />
 
-              <input
-                style={inputStyle}
-                type="number"
-                name="precio"
-                placeholder="Precio"
-                value={addFormData.precio}
-                onChange={handleAddChange}
-                step="0.01"
-                min="0"
-              />
 
               <select
                 name="status"

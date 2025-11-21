@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import axios from "axios"; 
 import { ok, warn, error as errorSwal } from "../../utils/alerts"
+import { crearFactura } from "../../api/facturas"
 
 const ServiciosClienteDesdeMecanico = () => {
   const [activeMenu, setActiveMenu] = useState("reparaciones")
@@ -18,7 +19,7 @@ const ServiciosClienteDesdeMecanico = () => {
     descripcion: "",
     fecha_inicio: "",
     fecha_fin: "",
-    precio: "",
+    costo_mano_obra: "",
   })
   const navigate = useNavigate()
   const { vehiculoId, reparacionId } = useParams()
@@ -35,8 +36,12 @@ const ServiciosClienteDesdeMecanico = () => {
     descripcion:     "",
     fecha_inicio:    "",
     fecha_fin:       "",
-    precio:          "",
+    costo_mano_obra: "",
   });
+
+  // Estado para generación de factura
+  const [generandoFactura, setGenerandoFactura] = useState(false);
+  const [facturaId, setFacturaId] = useState(null);
 
   useEffect(() => {
     // Verificar autenticación y rol del usuario
@@ -467,7 +472,7 @@ const ServiciosClienteDesdeMecanico = () => {
       descripcion:      servicio.descripcion ?? "",
       fecha_inicio:     servicio.fecha_inicio?.slice(0,10) ?? "",
       fecha_fin:        servicio.fecha_fin?.slice(0,10)    ?? "",
-      precio:           servicio.precio,
+      costo_mano_obra:  servicio.costo_mano_obra ?? "",
     })
     setShowEditModal(true)
   }
@@ -486,6 +491,13 @@ const ServiciosClienteDesdeMecanico = () => {
     try {
       const token = localStorage.getItem("token");
 
+      // Get existing spare parts for this service
+      const servicioCompletoRes = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/servicios/${selectedServicio.id}/completo`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const repuestosExistentes = servicioCompletoRes.data.repuestos || [];
+
       await axios.put(
         `${import.meta.env.VITE_API_URL}/api/servicios/${selectedServicio.id}`,
         {
@@ -493,7 +505,11 @@ const ServiciosClienteDesdeMecanico = () => {
           descripcion:     editFormData.descripcion,
           fecha_inicio:    editFormData.fecha_inicio || null,
           fecha_fin:       editFormData.fecha_fin    || null,
-          precio:          parseFloat(editFormData.precio) || 0,
+          costo_mano_obra: parseFloat(editFormData.costo_mano_obra) || 0,
+          repuestos: repuestosExistentes.map(r => ({
+            repuesto_id: r.repuesto_id,
+            cantidad: r.cantidad
+          })),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -553,9 +569,9 @@ const ServiciosClienteDesdeMecanico = () => {
         `${import.meta.env.VITE_API_URL}/api/servicios`,
         {
           ...addFormData,
-          precio: parseFloat(addFormData.precio) || 0,
+          costo_mano_obra: parseFloat(addFormData.costo_mano_obra) || 0,
           reparacion_id: reparacionId,
-          repuestos: addRepuestos,   // lista de repuestos
+          repuestos: addRepuestos.filter(r => r.repuesto_id && r.repuesto_id !== ""),   // lista de repuestos (filter empty)
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -568,7 +584,7 @@ const ServiciosClienteDesdeMecanico = () => {
         descripcion: "",
         fecha_inicio: "",
         fecha_fin: "",
-        precio: "",
+        costo_mano_obra: "",
       });
       setAddRepuestos([{ repuesto_id: "", cantidad: 1 }]);
       await ok("Servicio agregado", "Se registró correctamente");
@@ -578,6 +594,41 @@ const ServiciosClienteDesdeMecanico = () => {
     }
   };
 
+  // Handler para generar factura
+  const handleGenerarFactura = async () => {
+    if (!reparacionInfo || reparacionInfo.status !== 'Finalizado') {
+      return warn("Estado inválido", "Solo se pueden generar facturas para reparaciones finalizadas");
+    }
+
+    try {
+      setGenerandoFactura(true);
+      const response = await crearFactura(reparacionId);
+      
+      // Response can be either new invoice or existing invoice
+      const factura = response.factura;
+      setFacturaId(factura.id);
+
+      if (response.message.includes('Ya existe')) {
+        await ok("Factura existente", `La factura ${factura.numero_factura} ya existe para esta reparación`);
+      } else {
+        await ok("Factura generada", `Factura ${factura.numero_factura} creada exitosamente`);
+      }
+    } catch (err) {
+      console.error("Error generando factura:", err);
+      
+      // Handle specific error messages
+      const errorMessage = err.message || "Error al generar factura";
+      if (errorMessage.includes('Finalizado')) {
+        errorSwal("Estado inválido", "La reparación debe estar finalizada para generar la factura");
+      } else if (errorMessage.includes('permiso')) {
+        errorSwal("Sin permisos", "No tienes permiso para generar esta factura");
+      } else {
+        errorSwal("Error", errorMessage);
+      }
+    } finally {
+      setGenerandoFactura(false);
+    }
+  };
 
   if (!userData || !vehiculoData || !reparacionInfo) {
     return (
@@ -647,16 +698,82 @@ const ServiciosClienteDesdeMecanico = () => {
 
         {/* Header */}
         <div style={headerStyle}>
-          <h1 style={titleStyle}>Reparación #{reparacionInfo.id}</h1>
-          <p style={subtitleStyle}>
-            {vehiculoData.marca} {vehiculoData.modelo}
-          </p>
-          <p style={subtitleStyle}>Placa: {vehiculoData.placa}</p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+            <div>
+              <h1 style={titleStyle}>Reparación #{reparacionInfo.id}</h1>
+              <p style={subtitleStyle}>
+                {vehiculoData.marca} {vehiculoData.modelo}
+              </p>
+              <p style={subtitleStyle}>Placa: {vehiculoData.placa}</p>
+            </div>
+            
+            {/* Generate Invoice Button - Only show when status is Finalizado */}
+            {reparacionInfo.status === 'Finalizado' && (
+              <button
+                onClick={handleGenerarFactura}
+                disabled={generandoFactura}
+                style={{
+                  backgroundColor: generandoFactura ? "#9ca3af" : "#2D3573",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "0.375rem",
+                  padding: "0.75rem 1.5rem",
+                  fontSize: "1rem",
+                  fontWeight: "600",
+                  cursor: generandoFactura ? "not-allowed" : "pointer",
+                  transition: "background-color 0.3s ease",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+                onMouseOver={(e) => {
+                  if (!generandoFactura) {
+                    e.target.style.backgroundColor = "#1e2550";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!generandoFactura) {
+                    e.target.style.backgroundColor = "#2D3573";
+                  }
+                }}
+              >
+                {generandoFactura ? "Generando..." : "Generar Factura"}
+              </button>
+            )}
+          </div>
 
           <div style={infoRowStyle}>
             <span>Fecha de Inicio: {reparacionInfo.fecha_inicio}</span>
             <span>Fecha de Finalización: {reparacionInfo.fecha_fin}</span>
+            <span>Estado: {reparacionInfo.status}</span>
           </div>
+
+          {/* Show invoice link if invoice was generated */}
+          {facturaId && (
+            <div style={{
+              marginTop: "1rem",
+              padding: "0.75rem",
+              backgroundColor: "#d1fae5",
+              borderRadius: "0.375rem",
+              border: "1px solid #10b981"
+            }}>
+              <p style={{ margin: 0, color: "#065f46", fontWeight: "500" }}>
+                ✓ Factura generada. 
+                <button
+                  onClick={() => navigate(`/facturas-cliente`)}
+                  style={{
+                    marginLeft: "0.5rem",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    color: "#059669",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontWeight: "600"
+                  }}
+                >
+                  Ver facturas
+                </button>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Sección de Fotos Antes y Después */}
@@ -864,11 +981,12 @@ const ServiciosClienteDesdeMecanico = () => {
                 <input
                   type="number"
                   step="0.01"
-                  name="precio"
-                  value={editFormData.precio.toString()}
+                  name="costo_mano_obra"
+                  value={editFormData.costo_mano_obra.toString()}
                   onChange={handleEditChange}
                   style={inputStyle}
-                  placeholder="Valor ($ 0.00)"
+                  placeholder="Costo de Mano de Obra ($ 0.00)"
+                  min="0"
                   required
                 />
               </div>
@@ -955,11 +1073,12 @@ const ServiciosClienteDesdeMecanico = () => {
                 <input
                   type="number"
                   step="0.01"
-                  name="precio"
-                  value={addFormData.precio}
+                  name="costo_mano_obra"
+                  value={addFormData.costo_mano_obra}
                   onChange={handleAddChange}
                   style={inputStyle}
-                  placeholder="Valor ($ 0.00)"
+                  placeholder="Costo de Mano de Obra ($ 0.00)"
+                  min="0"
                   required
                 />
               </div>

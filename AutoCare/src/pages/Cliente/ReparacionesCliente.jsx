@@ -345,7 +345,11 @@ const ReparacionesCliente = () => {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
-                  <p style={valorStyle}>Valor: ${Number(rep.precio).toFixed(2)}</p>
+                  <p style={valorStyle}>
+                    Valor: {rep.precio === null || rep.precio === undefined || rep.precio === 0 
+                      ? "N/A" 
+                      : `$${Number(rep.precio).toFixed(2)}`}
+                  </p>
                 </div>
               </div>
 

@@ -94,3 +94,32 @@ export const descargarFacturaPDF = async (id) => {
   return blob;
 };
 
+/**
+ * Create invoice for a repair
+ * @param {number} reparacion_id - Repair ID
+ * @returns {Promise<Object>} Created invoice data
+ */
+export const crearFactura = async (reparacion_id) => {
+  const token = getToken();
+  
+  if (!token) {
+    throw new Error('No hay token de autenticación');
+  }
+
+  const response = await fetch(`${API_URL}/facturas`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ reparacion_id })
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || 'Error al crear factura');
+  }
+
+  return response.json();
+};
+
