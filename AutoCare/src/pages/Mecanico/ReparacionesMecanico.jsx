@@ -21,6 +21,7 @@ const ReparacionesMecanico = () => {
     fecha_inicio:    "",
     fecha_fin:       "",
     status:         "En curso", // Valor por defecto
+    comentarios_internos: "",
   });
   const [file, setFile] = useState(null); // Foto "antes" al crear
 
@@ -34,6 +35,7 @@ const ReparacionesMecanico = () => {
     fecha_inicio:    "",
     fecha_fin:       "",
     status:          "",
+    comentarios_internos: "",
     // precio removed - it's calculated from services
   });
   
@@ -387,6 +389,11 @@ const ReparacionesMecanico = () => {
         formData.append("status", addFormData.status || "Pendiente");
         formData.append("vehiculo_id", id);
         
+        // Agregar comentarios internos si tiene valor
+        if (addFormData.comentarios_internos) {
+          formData.append("comentarios_internos", addFormData.comentarios_internos.trim());
+        }
+        
         // Solo agregar imagen "antes" si existe
         if (file) {
           formData.append("imagen_antes", file); // Nombre del campo para foto antes
@@ -425,6 +432,7 @@ const ReparacionesMecanico = () => {
           fecha_inicio: "",
           fecha_fin: "",
           status: "Pendiente",
+          comentarios_internos: "",
         });
         setFile(null);
         await ok("Reparación registrada", "Se guardó correctamente")
@@ -467,6 +475,7 @@ const ReparacionesMecanico = () => {
     fecha_fin:       rep.fecha_fin?.slice(0,10)   ?? "",
       // precio removed - it's calculated from services
     status:          rep.status,
+    comentarios_internos: rep.comentarios_internos || "",
   });
   setFileAfter(null); // Resetear foto después al abrir modal
   setShowEditModal(true);
@@ -508,6 +517,9 @@ const handleEditSubmit = async (e) => {
       if (editFormData.fecha_fin) formData.append("fecha_fin", editFormData.fecha_fin);
       // precio removed - it's calculated from services
       formData.append("status", editFormData.status);
+      if (editFormData.comentarios_internos) {
+        formData.append("comentarios_internos", editFormData.comentarios_internos.trim());
+      }
       formData.append("imagen_despues", fileAfter); // Nombre del campo para foto después
 
       await axios.put(
@@ -778,6 +790,40 @@ const handleEditSubmit = async (e) => {
                 </div>
               )}
 
+              {/* Comentarios internos - Solo visible para mecánicos */}
+              {rep.comentarios_internos && (
+                <div style={{
+                  marginTop: "1rem",
+                  padding: "0.75rem",
+                  backgroundColor: "#fef3c7",
+                  border: "1px solid #fbbf24",
+                  borderRadius: "0.375rem",
+                  borderLeft: "4px solid #f59e0b"
+                }}>
+                  <div style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: "#92400e",
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem"
+                  }}>
+                    <span>🔒</span>
+                    <span>Comentarios Internos</span>
+                  </div>
+                  <p style={{
+                    fontSize: "0.875rem",
+                    color: "#78350f",
+                    margin: 0,
+                    lineHeight: "1.5",
+                    whiteSpace: "pre-wrap"
+                  }}>
+                    {rep.comentarios_internos}
+                  </p>
+                </div>
+              )}
+
               {/* Botón para el modal de editar reparación */}
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
                 <button
@@ -935,6 +981,19 @@ const handleEditSubmit = async (e) => {
                 <option value="Finalizado">Finalizado</option>
                 <option value="Rechazado por el cliente">Rechazado por el cliente</option>
               </select>
+
+              {/* Campo de comentarios internos */}
+              <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block", marginTop: "1rem" }}>
+                Comentarios internos (opcional)
+              </label>
+              <textarea
+                style={textareaStyle}
+                name="comentarios_internos"
+                placeholder="Notas internas sobre la reparación (solo visible para mecánicos y administradores)"
+                value={addFormData.comentarios_internos}
+                onChange={handleAddChange}
+                rows={3}
+              />
 
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
                 <button
@@ -1105,6 +1164,19 @@ const handleEditSubmit = async (e) => {
                     />
                   </div>
                 )}
+
+                {/* Campo de comentarios internos */}
+                <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block", marginTop: "1rem" }}>
+                  Comentarios internos (opcional)
+                </label>
+                <textarea
+                  style={textareaStyle}
+                  name="comentarios_internos"
+                  placeholder="Notas internas sobre la reparación (solo visible para mecánicos y administradores)"
+                  value={editFormData.comentarios_internos}
+                  onChange={handleEditChange}
+                  rows={3}
+                />
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
                   <button
