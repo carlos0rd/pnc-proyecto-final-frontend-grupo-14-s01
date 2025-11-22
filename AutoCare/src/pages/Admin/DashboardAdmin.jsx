@@ -144,6 +144,7 @@ const DashboardAdmin = () => {
   const handleMenuClick = (menu) => {
     if (menu === "usuarios")      navigate("/gestion-usuarios")
     else if (menu === "vehiculos")navigate("/gestion-vehiculos")
+    else if (menu === "repuestos")navigate("/gestion-repuestos-admin")
     else                          setActiveMenu(menu)
   }
 
@@ -428,6 +429,12 @@ const DashboardAdmin = () => {
             onClick={() => handleMenuClick("vehiculos")}
           >
             vehiculos
+          </div>
+          <div
+            style={activeMenu === "repuestos" ? activeMenuItemStyle : menuItemStyle}
+            onClick={() => handleMenuClick("repuestos")}
+          >
+            Repuestos
           </div>
         </div>
 

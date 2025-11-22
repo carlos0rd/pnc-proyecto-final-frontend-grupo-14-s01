@@ -29,6 +29,11 @@ const ServiciosClienteDesdeMecanico = () => {
     { repuesto_id: "", cantidad: 1 },
   ])
 
+  const [editRepuestos, setEditRepuestos] = useState([
+  { repuesto_id: "", cantidad: 1 },
+  ])
+
+
   // Estado para el modal de agregar servicio
   const [showAddModal, setShowAddModal]  = useState(false);
   const [addFormData,  setAddFormData]   = useState({
@@ -465,7 +470,7 @@ const ServiciosClienteDesdeMecanico = () => {
     }
   }
 
-  const handleEditServicio = (servicio, index) => {
+  /*const handleEditServicio = (servicio, index) => {
     setSelectedServicio({ ...servicio, index })
     setEditFormData({
       nombre_servicio:  servicio.nombre_servicio,
@@ -475,7 +480,46 @@ const ServiciosClienteDesdeMecanico = () => {
       costo_mano_obra:  servicio.costo_mano_obra ?? "",
     })
     setShowEditModal(true)
-  }
+  }*/
+
+    const handleEditServicio = async (servicio, index) => {
+      try {
+        const token = localStorage.getItem("token");
+    
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/servicios/${servicio.id}/completo`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+    
+        setSelectedServicio({ ...servicio, index });
+    
+        setEditFormData({
+          nombre_servicio: data.nombre_servicio,
+          descripcion:     data.descripcion ?? "",
+          fecha_inicio:    data.fecha_inicio ? data.fecha_inicio.slice(0, 10) : "",
+          fecha_fin:       data.fecha_fin ? data.fecha_fin.slice(0, 10) : "",
+          costo_mano_obra: data.mano_obra ?? data.costo_mano_obra ?? "",
+        });
+    
+        if (Array.isArray(data.repuestos) && data.repuestos.length > 0) {
+          setEditRepuestos(
+            data.repuestos.map((r) => ({
+              repuesto_id: r.repuesto_id ?? r.id,
+              cantidad:    r.cantidad,
+            }))
+          );
+        } else {
+          setEditRepuestos([{ repuesto_id: "", cantidad: 1 }]);
+        }
+    
+        setShowEditModal(true);
+      } catch (err) {
+        console.error(err);
+        errorSwal("Error", "No se pudo cargar la información completa del servicio");
+      }
+    };
+    
+
 
   const handleEditChange = ({target}) => {
     setEditFormData({ ...editFormData, [target.name]: target.value });
@@ -483,58 +527,59 @@ const ServiciosClienteDesdeMecanico = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-
-    if(!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
-      return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
+  
+    if (!editFormData.nombre_servicio.trim() || !editFormData.descripcion.trim()) {
+      return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vacíos");
     }
-
+  
     try {
       const token = localStorage.getItem("token");
-
-      // Get existing spare parts for this service
-      const servicioCompletoRes = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/servicios/${selectedServicio.id}/completo`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const repuestosExistentes = servicioCompletoRes.data.repuestos || [];
-
-      await axios.put(
+  
+      const response = await axios.put(
         `${import.meta.env.VITE_API_URL}/api/servicios/${selectedServicio.id}`,
         {
           nombre_servicio: editFormData.nombre_servicio,
           descripcion:     editFormData.descripcion,
           fecha_inicio:    editFormData.fecha_inicio || null,
-          fecha_fin:       editFormData.fecha_fin    || null,
-          costo_mano_obra: parseFloat(editFormData.costo_mano_obra) || 0,
-          repuestos: repuestosExistentes.map(r => ({
-            repuesto_id: r.repuesto_id,
-            cantidad: r.cantidad
-          })),
+          fecha_fin:       editFormData.fecha_fin || null,
+          costo_mano_obra: parseFloat(editFormData.costo_mano_obra) || 0,   
+          repuestos: editRepuestos
+            .filter(r => r.repuesto_id && r.repuesto_id !== ""),           
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      /* Actualizar la lista en pantalla sin recargar */
+  
+      const nuevoPrecio = response.data?.precio_total;
+  
+      // actualizar la lista en memoria
       setServicios((prev) =>
         prev.map((s) =>
           s.id === selectedServicio.id
-            ? { ...s, ...editFormData }
+            ? {
+                ...s,
+                ...editFormData,
+                precio: nuevoPrecio != null ? nuevoPrecio : s.precio,
+                costo_mano_obra: parseFloat(editFormData.costo_mano_obra) || 0,
+              }
             : s
         )
       );
-
+  
       setShowEditModal(false);
       await ok("Servicio actualizado", "Los cambios se guardaron correctamente");
     } catch (err) {
-      console.error(err)
-      errorSwal("Error al actualizar", err.response?.data?.message || "Intenta más tarde")
+      console.error(err);
+      errorSwal(
+        "Error al actualizar",
+        err.response?.data?.message || "Intenta más tarde"
+      );
     }
   };
+  
 
   const handleAddChange = ({ target }) =>
     setAddFormData({ ...addFormData, [target.name]: target.value });
 
-  // ---- NUEVOS handlers para repuestos en el modal de "Nuevo servicio" ----
 
   const handleAddRepuestoRow = () => {
     setAddRepuestos((prev) => [...prev, { repuesto_id: "", cantidad: 1 }]);
@@ -543,6 +588,24 @@ const ServiciosClienteDesdeMecanico = () => {
   const handleRemoveRepuestoRow = (index) => {
     setAddRepuestos((prev) => prev.filter((_, i) => i !== index));
   };
+
+  // Repuestos modal edita
+  const handleAddEditRepuestoRow = () => {
+    setEditRepuestos((prev) => [...prev, { repuesto_id: "", cantidad: 1 }])
+  }
+
+  const handleRemoveEditRepuestoRow = (index) => {
+    setEditRepuestos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleChangeEditRepuestoRow = (index, field, value) => {
+    setEditRepuestos((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      )
+    )
+  }
+
 
   const handleChangeRepuestoRow = (index, field, value) => {
     setAddRepuestos((prev) =>
@@ -554,30 +617,36 @@ const ServiciosClienteDesdeMecanico = () => {
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
-
-    if(!addFormData.nombre_servicio.trim() || !addFormData.descripcion.trim()) {
-      return warn("Campos obligatorios", "Nombre y descripción no pueden quedar vaciós")
+  
+    if (!addFormData.nombre_servicio.trim() || !addFormData.descripcion.trim()) {
+      return warn(
+        "Campos obligatorios",
+        "Nombre y descripción no pueden quedar vacíos"
+      );
     }
-
-    // Aquí solo mostramos en consola los repuestos seleccionados
-    // Cuando tengas backend, los envías en el body del POST
-    console.log("Repuestos seleccionados para este servicio:", addRepuestos);
-
+  
     try {
       const token = localStorage.getItem("token");
-     await axios.post(
+  
+      const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/servicios`,
         {
           ...addFormData,
           costo_mano_obra: parseFloat(addFormData.costo_mano_obra) || 0,
           reparacion_id: reparacionId,
-          repuestos: addRepuestos.filter(r => r.repuesto_id && r.repuesto_id !== ""),   // lista de repuestos (filter empty)
+          repuestos: addRepuestos.filter(r => r.repuesto_id && r.repuesto_id !== ""),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Refrescar la lista localmente 
-      setServicios((prev) => [...prev, { ...addFormData, id: Date.now() }]);
+  
+      const nuevoServicio = {
+        ...addFormData,
+        id: response.data.servicio_id,
+        precio: response.data.precio_total,
+      };
+  
+      setServicios((prev) => [...prev, nuevoServicio]);
+  
       setShowAddModal(false);
       setAddFormData({
         nombre_servicio: "",
@@ -587,12 +656,18 @@ const ServiciosClienteDesdeMecanico = () => {
         costo_mano_obra: "",
       });
       setAddRepuestos([{ repuesto_id: "", cantidad: 1 }]);
+  
       await ok("Servicio agregado", "Se registró correctamente");
     } catch (err) {
-      console.error(err)
-      errorSwal("Error al agregar", err.response?.data?.message || "Intenta más tarde")
+      console.error(err);
+      errorSwal(
+        "Error al agregar",
+        err.response?.data?.message || "Intenta más tarde"
+      );
     }
   };
+  
+
 
   // Handler para generar factura
   const handleGenerarFactura = async () => {
@@ -990,6 +1065,68 @@ const ServiciosClienteDesdeMecanico = () => {
                   required
                 />
               </div>
+
+              {/* -------- Repuestos del servicio -------- */}
+          <div style={{ marginTop: "1rem" }}>
+            <div style={repuestosSectionTitleStyle}>Repuestos del servicio</div>
+            <p style={{ fontSize: "0.8rem", color: "#6b7280", marginBottom: "0.5rem" }}>
+              Modifique los repuestos y cantidades usados en este servicio.
+            </p>
+
+            {editRepuestos.map((row, index) => (
+              <div key={index} style={repuestoRowStyle}>
+                <select
+                  style={selectStyle}
+                  value={row.repuesto_id}
+                  onChange={(e) =>
+                    handleChangeEditRepuestoRow(index, "repuesto_id", e.target.value)
+                  }
+                >
+                  <option value="">-- Seleccione un repuesto --</option>
+                  {repuestosCatalogo.map((r) => {
+                    const precioNumber = Number(r.precio_unitario)
+                    const precioFormateado = !isNaN(precioNumber)
+                      ? precioNumber.toFixed(2)
+                      : r.precio_unitario
+
+                    return (
+                      <option key={r.id} value={r.id}>
+                        {r.nombre} {precioFormateado ? `($${precioFormateado})` : ""}
+                      </option>
+                    )
+                  })}
+                </select>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={row.cantidad}
+                  onChange={(e) =>
+                    handleChangeEditRepuestoRow(index, "cantidad", e.target.value)
+                  }
+                  style={repuestoCantidadInputStyle}
+                />
+
+                {editRepuestos.length > 1 && (
+                  <button
+                    type="button"
+                    style={removeRepuestoButtonStyle}
+                    onClick={() => handleRemoveEditRepuestoRow(index)}
+                  >
+                    X
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              style={addRepuestoButtonStyle}
+              onClick={handleAddEditRepuestoRow}
+            >
+              + Agregar otro repuesto
+            </button>
+          </div>
 
               <div style={buttonContainerStyle}>
                 <button

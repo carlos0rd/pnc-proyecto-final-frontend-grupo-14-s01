@@ -14,6 +14,8 @@ import DashboardMecanico from "../pages/Mecanico/DashboardMecanico"
 import VehiculosMecanico from "../pages/Mecanico/VehiculosMecanico"
 import ReparacionesMecanico from "../pages/Mecanico/ReparacionesMecanico"
 import ServiciosClienteDesdeMecanico from "../pages/Mecanico/ServiciosClienteDesdeMecanico"
+import GestionRepuestos from "../pages/Mecanico/GestionRepuestos"
+import GestionRepuestosAdmin from "../pages/Admin/GestionRepuestos"
 
 function AppRoutes() {
   return (
@@ -33,6 +35,8 @@ function AppRoutes() {
         <Route path="/vehiculos-mecanico" element={<VehiculosMecanico />} />
         <Route path="/reparaciones-mecanico/:id" element={<ReparacionesMecanico />} />
         <Route path="/servicios-mecanico/:vehiculoId/:reparacionId" element={<ServiciosClienteDesdeMecanico />} />
+        <Route path="/gestion-repuestos" element={<GestionRepuestos />} />
+        <Route path="/gestion-repuestos-admin" element={<GestionRepuestosAdmin />} />
          
       </Routes>
     </BrowserRouter>

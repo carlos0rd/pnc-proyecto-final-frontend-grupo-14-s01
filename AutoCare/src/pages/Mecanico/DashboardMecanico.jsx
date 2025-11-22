@@ -408,6 +408,15 @@ const DashboardMecanico = () => {
           </div>
 
           <div
+            style={menuItemStyle}
+            onClick={() => navigate("/gestion-repuestos")}
+            onMouseOver={(e) => (e.target.style.backgroundColor = "rgba(255,255,255,0.1)")}
+            onMouseOut={(e) => (e.target.style.backgroundColor = "transparent")}
+          >
+            Gestión de Repuestos
+          </div>
+
+          <div
             style={activeMenu === "perfil" ? activeMenuItemStyle : menuItemStyle}
             onClick={() => handleMenuClick("perfil")}
           >
