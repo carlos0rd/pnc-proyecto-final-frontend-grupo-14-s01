@@ -10,13 +10,18 @@ const ReparacionesCliente = () => {
   const navigate = useNavigate()
   const { id } = useParams()
   const [reparaciones, setReparaciones] = useState([]);
-  const [processingId, setProcessingId] = useState(null); // cuál se está procesando
+  const [processingId, setProcessingId] = useState(null);
 
+  // 👉 popup bonito
   const [popup, setPopup] = useState({
     visible: false,
     message: "",
     type: "success", // success | error | info
   });
+
+  // 👉 HU18: búsqueda y filtro
+  const [searchTerm, setSearchTerm] = useState("");    // placa / VIN
+  const [statusFilter, setStatusFilter] = useState("todos"); // todos | pendiente | aprobada | rechazada
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -28,7 +33,7 @@ const ReparacionesCliente = () => {
     }
     setUserData(JSON.parse(currentUser));
 
-    /*Obtener info del vehículo*/
+    // 1. Info vehículo
     fetch(`${import.meta.env.VITE_API_URL}/vehiculos/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -39,7 +44,7 @@ const ReparacionesCliente = () => {
       .then((vehiculo) => setVehiculoData(vehiculo))
       .catch(() => navigate("/vehiculos-cliente"));
 
-    /*Obtener reparaciones del vehículo*/
+    // 2. Reparaciones del vehículo
     fetch(`${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -48,7 +53,7 @@ const ReparacionesCliente = () => {
       .catch((err) => console.error(err));
   }, [id, navigate]);
 
-  // Estilos generales
+  // ---------- estilos generales ----------
   const containerStyle = {
     display: "flex",
     minHeight: "100vh",
@@ -169,7 +174,7 @@ const ReparacionesCliente = () => {
     fontSize: "1.75rem",
     fontWeight: "bold",
     color: "#374151",
-    margin: "2rem 0 1.5rem 0",
+    margin: "2rem 0 1.25rem 0",
   };
 
   const reparacionCardStyle = {
@@ -208,6 +213,8 @@ const ReparacionesCliente = () => {
       color = "#F59E0B";
     } else if (status.toLowerCase().includes("curso")) {
       color = "#3B82F6";
+    } else if (status.toLowerCase().includes("aprobada")) {
+      color = "#10B981";
     }
 
     return {
@@ -224,31 +231,51 @@ const ReparacionesCliente = () => {
     color: "#374151",
   };
 
-  // Estilos para botones de aprobar / rechazar cotización
-  const decisionButtonsContainerStyle = {
+  // estilos HU18: barra de filtros
+  const filtersBarStyle = {
     display: "flex",
-    gap: "0.75rem",
-    marginTop: "0.75rem",
     flexWrap: "wrap",
+    gap: "0.75rem",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "1.25rem",
   };
 
-  const approveButtonStyle = {
-    padding: "0.5rem 1rem",
-    borderRadius: "0.375rem",
-    border: "none",
+  const searchInputStyle = {
+    flex: 1,
+    minWidth: "220px",
+    padding: "0.55rem 0.8rem",
+    borderRadius: "0.5rem",
+    border: "1px solid #d1d5db",
+    fontSize: "0.9rem",
+    outline: "none",
+  };
+
+  const statusFilterContainerStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "0.5rem",
+  };
+
+  const baseFilterButtonStyle = {
+    padding: "0.4rem 0.9rem",
+    borderRadius: "999px",
+    border: "1px solid #d1d5db",
+    fontSize: "0.8rem",
     cursor: "pointer",
-    fontSize: "0.875rem",
-    fontWeight: 600,
-    backgroundColor: "#10B981",
+    backgroundColor: "white",
+    color: "#4b5563",
+  };
+
+  const activeFilterButtonStyle = {
+    ...baseFilterButtonStyle,
+    backgroundColor: "#2D3573",
+    borderColor: "#2D3573",
     color: "white",
+    fontWeight: 600,
   };
 
-  const rejectButtonStyle = {
-    ...approveButtonStyle,
-    backgroundColor: "#DC2626",
-  };
-
-  // Estilos del POPUP
+  // ---------- estilos popup ----------
   const popupContainerStyle = {
     position: "fixed",
     top: "1.5rem",
@@ -258,7 +285,7 @@ const ReparacionesCliente = () => {
   };
 
   const getPopupBoxStyle = (type) => {
-    let borderColor = "#3B82F6"; // Tipo de mensaje
+    let borderColor = "#3B82F6"; // info
     if (type === "success") borderColor = "#10B981";
     if (type === "error") borderColor = "#DC2626";
 
@@ -296,8 +323,6 @@ const ReparacionesCliente = () => {
 
   const handleShowPopup = (message, type = "success") => {
     setPopup({ visible: true, message, type });
-
-    // auto-cerrar en 3 segundos
     setTimeout(() => {
       setPopup((prev) => ({ ...prev, visible: false }));
     }, 3000);
@@ -323,7 +348,7 @@ const ReparacionesCliente = () => {
     navigate(`/servicios-cliente/${id}/${reparacionId}`)
   }
 
-  // función para aprobar / rechazar la cotización
+  // 💡 HU3 + HU4: aprobar / rechazar cotización
   const handleDecisionCotizacion = async (reparacionId, decision) => {
     const token = localStorage.getItem("token");
 
@@ -343,7 +368,7 @@ const ReparacionesCliente = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ decision }), // "aprobada" o "rechazada"
+          body: JSON.stringify({ decision }),
         }
       );
 
@@ -374,6 +399,33 @@ const ReparacionesCliente = () => {
     }
   }
 
+  // ---------- HU18: aplicar búsqueda y filtro ----------
+  const filteredReparaciones = reparaciones.filter((rep) => {
+    const term = searchTerm.trim().toLowerCase();
+
+    // buscar por placa o VIN si viene
+    const placa = (rep.placa || "").toLowerCase();
+    const vin = (rep.vin || "").toLowerCase();
+
+    const matchesSearch =
+      term === "" ||
+      placa.includes(term) ||
+      vin.includes(term);
+
+    const status = (rep.status || "").toLowerCase();
+    let matchesStatus = true;
+
+    if (statusFilter === "pendiente") {
+      matchesStatus = status.includes("pendiente");
+    } else if (statusFilter === "aprobada") {
+      matchesStatus = status.includes("aprobada");
+    } else if (statusFilter === "rechazada") {
+      matchesStatus = status.includes("rechazad"); // cubre rechazado/a
+    }
+
+    return matchesSearch && matchesStatus;
+  });
+
   if (!userData || !vehiculoData) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
@@ -384,7 +436,7 @@ const ReparacionesCliente = () => {
 
   return (
     <div style={containerStyle}>
-      {/* POPUP bonito */}
+      {/* POPUP */}
       {popup.visible && (
         <div style={popupContainerStyle}>
           <div style={getPopupBoxStyle(popup.type)}>
@@ -455,14 +507,55 @@ const ReparacionesCliente = () => {
         <h1 style={titleStyle}>
           {vehiculoData?.marca} {vehiculoData?.modelo}
         </h1>
-        <p style={subtitleStyle}>Placa: {vehiculoData?.placa}</p>
+        <p style={subtitleStyle}>
+          Placa: {vehiculoData?.placa}
+        </p>
 
-        <h2 style={sectionTitleStyle}>Registro de Reparaciones</h2>
+        <h2 style={sectionTitleStyle}>Registro de Reparaciones / Cotizaciones</h2>
 
-        {reparaciones.length === 0 ? (
-          <p>No hay reparaciones registradas para este vehículo.</p>
+        {/* HU18: Barra de búsqueda y filtros */}
+        <div style={filtersBarStyle}>
+          <input
+            type="text"
+            placeholder="Buscar por placa o VIN del vehículo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={searchInputStyle}
+          />
+
+          <div style={statusFilterContainerStyle}>
+            <button
+              style={statusFilter === "todos" ? activeFilterButtonStyle : baseFilterButtonStyle}
+              onClick={() => setStatusFilter("todos")}
+            >
+              Todos
+            </button>
+            <button
+              style={statusFilter === "pendiente" ? activeFilterButtonStyle : baseFilterButtonStyle}
+              onClick={() => setStatusFilter("pendiente")}
+            >
+              Pendiente
+            </button>
+            <button
+              style={statusFilter === "aprobada" ? activeFilterButtonStyle : baseFilterButtonStyle}
+              onClick={() => setStatusFilter("aprobada")}
+            >
+              Aprobada
+            </button>
+            <button
+              style={statusFilter === "rechazada" ? activeFilterButtonStyle : baseFilterButtonStyle}
+              onClick={() => setStatusFilter("rechazada")}
+            >
+              Rechazada
+            </button>
+          </div>
+        </div>
+
+        {/* Lista filtrada */}
+        {filteredReparaciones.length === 0 ? (
+          <p>No hay cotizaciones que coincidan con la búsqueda o filtro.</p>
         ) : (
-          reparaciones.map((rep) => (
+          filteredReparaciones.map((rep) => (
             <div
               key={rep.id}
               style={reparacionCardStyle}
@@ -478,6 +571,9 @@ const ReparacionesCliente = () => {
                     Fin:&nbsp;
                     {rep.fecha_fin ? new Date(rep.fecha_fin).toLocaleDateString() : "----"}
                   </p>
+                  {rep.placa && (
+                    <p style={reparacionDetailStyle}>Placa: {rep.placa}</p>
+                  )}
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p style={getStatusStyle(rep.status)}>Status: {rep.status}</p>
@@ -498,9 +594,25 @@ const ReparacionesCliente = () => {
                 if (!isCotizacion) return null;
 
                 return (
-                  <div style={decisionButtonsContainerStyle}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.75rem",
+                      marginTop: "0.75rem",
+                      flexWrap: "wrap",
+                    }}
+                  >
                     <button
-                      style={approveButtonStyle}
+                      style={{
+                        padding: "0.5rem 1rem",
+                        borderRadius: "0.375rem",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        backgroundColor: "#10B981",
+                        color: "white",
+                      }}
                       disabled={processingId === rep.id}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -511,7 +623,16 @@ const ReparacionesCliente = () => {
                     </button>
 
                     <button
-                      style={rejectButtonStyle}
+                      style={{
+                        padding: "0.5rem 1rem",
+                        borderRadius: "0.375rem",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        backgroundColor: "#DC2626",
+                        color: "white",
+                      }}
                       disabled={processingId === rep.id}
                       onClick={(e) => {
                         e.stopPropagation();
