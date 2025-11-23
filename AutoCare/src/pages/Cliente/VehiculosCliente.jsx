@@ -13,6 +13,10 @@ const VehiculosCliente = () => {
   // Reparaciones activas por vehículo (vehiculoId -> array de reparaciones)
   const [reparacionesActivas, setReparacionesActivas] = useState({});
 
+  // HU14: búsqueda y filtros
+  const [searchTerm, setSearchTerm] = useState("");        // búsqueda placa / VIN
+  const [brandFilter, setBrandFilter] = useState("todas"); // filtro por marca
+
   // Función para obtener reparaciones activas de un vehículo
   const fetchReparacionesActivas = async (vehiculoId, token) => {
     try {
@@ -41,42 +45,42 @@ const VehiculosCliente = () => {
     }
   };
 
-useEffect(() => {
-  const isAuthenticated = localStorage.getItem("isAuthenticated");
-  const currentUser = localStorage.getItem("currentUser");
-  const token = localStorage.getItem("token");
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+    const currentUser = localStorage.getItem("currentUser");
+    const token = localStorage.getItem("token");
 
-  if (!isAuthenticated || !currentUser) {
-    navigate("/");
-    return;
-  }
-
-  const user = JSON.parse(currentUser);
-  setUserData(user);
-
-  // Obtener vehículos del backend
-  fetch(`${import.meta.env.VITE_API_URL}/vehiculos`, {
-    headers: {
-      Authorization: `Bearer ${token}`
+    if (!isAuthenticated || !currentUser) {
+      navigate("/");
+      return;
     }
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error("Error al obtener vehículos");
-      return res.json();
+
+    const user = JSON.parse(currentUser);
+    setUserData(user);
+
+    // Obtener vehículos del backend
+    fetch(`${import.meta.env.VITE_API_URL}/vehiculos`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
     })
-   .then((data) => {
-   const lista = Array.isArray(data) ? data               
-               : Array.isArray(data.data) ? data.data     
-               : [];                                      
-   setVehiculosData(lista);
-   
-   // Obtener reparaciones activas para cada vehículo
-   lista.forEach((vehiculo) => {
-     fetchReparacionesActivas(vehiculo.id, token);
-   });
- })
-    .catch((err) => console.error(err));
-}, [navigate]);
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al obtener vehículos");
+        return res.json();
+      })
+      .then((data) => {
+        const lista = Array.isArray(data) ? data
+          : Array.isArray(data.data) ? data.data
+          : [];
+        setVehiculosData(lista);
+        
+        // Obtener reparaciones activas para cada vehículo
+        lista.forEach((vehiculo) => {
+          fetchReparacionesActivas(vehiculo.id, token);
+        });
+      })
+      .catch((err) => console.error(err));
+  }, [navigate]);
 
   // Actualización automática del estado cada 30 segundos
   useEffect(() => {
@@ -144,13 +148,11 @@ useEffect(() => {
   const logoCircleStyle = {
     width: "120px",
     height: "120px",
-    //backgroundColor: "white",
     borderRadius: "50%",
     overflow: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    //padding: "1rem",
   }
 
   const logoStyle = {
@@ -214,7 +216,7 @@ useEffect(() => {
   }
 
   const headerStyle = {
-    marginBottom: "3rem",
+    marginBottom: "1.5rem",
   }
 
   const titleStyle = {
@@ -350,12 +352,33 @@ useEffect(() => {
     cursor: "pointer",
   }
 
-  const settingsIconStyle = {
-    width: "24px",
-    height: "24px",
-    cursor: "pointer",
-    color: "#6b7280",
-  }
+  // 🔎 HU14: obtener marcas y aplicar filtros
+  const marcasDisponibles = Array.from(
+    new Set(
+      vehiculosData
+        .map((v) => (v.marca || "").trim())
+        .filter(Boolean)
+    )
+  ).sort();
+
+  const filteredVehiculos = vehiculosData.filter((v) => {
+    const term = searchTerm.trim().toLowerCase();
+
+    const placa = (v.placa || "").toLowerCase();
+    const vin   = (v.vin || "").toLowerCase();
+    const marca = (v.marca || "").toLowerCase();
+
+    const matchesSearch =
+      term === "" ||
+      placa.includes(term) ||
+      vin.includes(term);
+
+    const matchesBrand =
+      brandFilter === "todas" ||
+      marca === brandFilter.toLowerCase();
+
+    return matchesSearch && matchesBrand;
+  });
 
   const handleLogout = () => {
     // Limpiar localStorage
@@ -445,6 +468,88 @@ useEffect(() => {
           <h1 style={titleStyle}>Menú Vehículos</h1>
         </div>
 
+        {/* HU14: barra de búsqueda + filtros por marca */}
+        {vehiculosData.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+              alignItems: "center",
+              justifyContent: "space-between",
+              margin: "0 0 1.5rem 0",
+            }}
+          >
+            {/* Búsqueda por placa / VIN */}
+            <input
+              type="text"
+              placeholder="Buscar por placa o VIN..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: "220px",
+                padding: "0.55rem 0.8rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #d1d5db",
+                fontSize: "0.9rem",
+                outline: "none",
+              }}
+            />
+
+            {/* Filtros por marca */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "0.5rem",
+              }}
+            >
+              <button
+                style={{
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "999px",
+                  border: "1px solid #d1d5db",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  backgroundColor: brandFilter === "todas" ? "#2D3573" : "white",
+                  color: brandFilter === "todas" ? "white" : "#4b5563",
+                  fontWeight: brandFilter === "todas" ? 600 : 400,
+                }}
+                onClick={() => setBrandFilter("todas")}
+              >
+                Todas las marcas
+              </button>
+
+              {marcasDisponibles.map((marca) => (
+                <button
+                  key={marca}
+                  style={{
+                    padding: "0.4rem 0.9rem",
+                    borderRadius: "999px",
+                    border: "1px solid #d1d5db",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                    backgroundColor:
+                      brandFilter.toLowerCase() === marca.toLowerCase()
+                        ? "#2D3573"
+                        : "white",
+                    color:
+                      brandFilter.toLowerCase() === marca.toLowerCase()
+                        ? "white"
+                        : "#4b5563",
+                    fontWeight:
+                      brandFilter.toLowerCase() === marca.toLowerCase() ? 600 : 400,
+                  }}
+                  onClick={() => setBrandFilter(marca)}
+                >
+                  {marca}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {vehiculosData.length === 0 && (
           <div style={{ textAlign: "center", color: "#6b7280", fontSize: "1.2rem" }}>
             No tienes vehículos registrados.
@@ -453,7 +558,13 @@ useEffect(() => {
 
         {/* Lista de Vehículos */}
         <div style={vehiculosContainerStyle}>
-          {vehiculosData.map((vehiculo) => {
+          {filteredVehiculos.length === 0 && vehiculosData.length > 0 && (
+            <div style={{ textAlign: "center", color: "#6b7280", marginTop: "1rem" }}>
+              No hay vehículos que coincidan con la búsqueda o filtro.
+            </div>
+          )}
+
+          {filteredVehiculos.map((vehiculo) => {
             const reparacionesDelVehiculo = reparacionesActivas[vehiculo.id] || [];
             const tieneReparacionesActivas = reparacionesDelVehiculo.length > 0;
             
@@ -462,7 +573,7 @@ useEffect(() => {
                 {/* Header del vehículo */}
                 <div style={vehiculoCardHeaderStyle}>
                   <img
-                    src={vehiculo.imagen? `${import.meta.env.VITE_API_URL}${vehiculo.imagen}`: "/placeholder.svg"}
+                    src={vehiculo.imagen ? `${import.meta.env.VITE_API_URL}${vehiculo.imagen}` : "/placeholder.svg"}
                     alt={`${vehiculo.marca} ${vehiculo.modelo}`}
                     style={vehiculoImageStyle}
                   />
