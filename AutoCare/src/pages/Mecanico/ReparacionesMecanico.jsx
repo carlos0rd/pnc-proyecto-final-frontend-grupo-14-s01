@@ -22,6 +22,7 @@ const ReparacionesMecanico = () => {
     fecha_fin:       "",
     status:         "En curso", // Valor por defecto
     comentarios_internos: "",
+    fecha_proximo_mantenimiento: "",
   });
   const [file, setFile] = useState(null); // Foto "antes" al crear
 
@@ -36,6 +37,7 @@ const ReparacionesMecanico = () => {
     fecha_fin:       "",
     status:          "",
     comentarios_internos: "",
+    fecha_proximo_mantenimiento: "",
     // precio removed - it's calculated from services
   });
   
@@ -394,6 +396,11 @@ const ReparacionesMecanico = () => {
           formData.append("comentarios_internos", addFormData.comentarios_internos.trim());
         }
         
+        // Agregar fecha próximo mantenimiento si tiene valor
+        if (addFormData.fecha_proximo_mantenimiento) {
+          formData.append("fecha_proximo_mantenimiento", addFormData.fecha_proximo_mantenimiento);
+        }
+        
         // Solo agregar imagen "antes" si existe
         if (file) {
           formData.append("imagen_antes", file); // Nombre del campo para foto antes
@@ -433,6 +440,7 @@ const ReparacionesMecanico = () => {
           fecha_fin: "",
           status: "Pendiente",
           comentarios_internos: "",
+          fecha_proximo_mantenimiento: "",
         });
         setFile(null);
         await ok("Reparación registrada", "Se guardó correctamente")
@@ -476,6 +484,7 @@ const ReparacionesMecanico = () => {
       // precio removed - it's calculated from services
     status:          rep.status,
     comentarios_internos: rep.comentarios_internos || "",
+    fecha_proximo_mantenimiento: rep.fecha_proximo_mantenimiento?.slice(0,10) ?? "",
   });
   setFileAfter(null); // Resetear foto después al abrir modal
   setShowEditModal(true);
@@ -519,6 +528,9 @@ const handleEditSubmit = async (e) => {
       formData.append("status", editFormData.status);
       if (editFormData.comentarios_internos) {
         formData.append("comentarios_internos", editFormData.comentarios_internos.trim());
+      }
+      if (editFormData.fecha_proximo_mantenimiento) {
+        formData.append("fecha_proximo_mantenimiento", editFormData.fecha_proximo_mantenimiento);
       }
       formData.append("imagen_despues", fileAfter); // Nombre del campo para foto después
 
@@ -995,6 +1007,19 @@ const handleEditSubmit = async (e) => {
                 rows={3}
               />
 
+              {/* Campo de fecha próximo mantenimiento */}
+              <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block", marginTop: "1rem" }}>
+                Fecha próximo mantenimiento (opcional)
+              </label>
+              <input
+                style={inputStyle}
+                type="date"
+                name="fecha_proximo_mantenimiento"
+                value={addFormData.fecha_proximo_mantenimiento}
+                onChange={handleAddChange}
+                placeholder="Fecha sugerida para el próximo mantenimiento"
+              />
+
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
                 <button
                   type="submit"
@@ -1176,6 +1201,19 @@ const handleEditSubmit = async (e) => {
                   value={editFormData.comentarios_internos}
                   onChange={handleEditChange}
                   rows={3}
+                />
+
+                {/* Campo de fecha próximo mantenimiento */}
+                <label style={{ fontSize: "0.875rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem", display: "block", marginTop: "1rem" }}>
+                  Fecha próximo mantenimiento (opcional)
+                </label>
+                <input
+                  style={inputStyle}
+                  type="date"
+                  name="fecha_proximo_mantenimiento"
+                  value={editFormData.fecha_proximo_mantenimiento}
+                  onChange={handleEditChange}
+                  placeholder="Fecha sugerida para el próximo mantenimiento"
                 />
 
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>

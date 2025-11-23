@@ -12,6 +12,8 @@ const VehiculosCliente = () => {
   const [vehiculosData, setVehiculosData] = useState([]);
   // Reparaciones activas por vehículo (vehiculoId -> array de reparaciones)
   const [reparacionesActivas, setReparacionesActivas] = useState({});
+  // Mantenimientos próximos para notificaciones
+  const [mantenimientosProximos, setMantenimientosProximos] = useState([]);
 
   // HU14: búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState("");        // búsqueda placa / VIN
@@ -80,6 +82,27 @@ const VehiculosCliente = () => {
         });
       })
       .catch((err) => console.error(err));
+
+    // Cargar mantenimientos próximos
+    if (token) {
+      fetch(`${import.meta.env.VITE_API_URL}/reparaciones/mantenimientos-proximos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => {
+          if (!res.ok) {
+            console.error("Error en respuesta:", res.status, res.statusText);
+            return [];
+          }
+          return res.json();
+        })
+        .then(data => {
+          setMantenimientosProximos(Array.isArray(data) ? data : []);
+        })
+        .catch(err => {
+          console.error("Error cargando mantenimientos:", err);
+          setMantenimientosProximos([]);
+        });
+    }
   }, [navigate]);
 
   // Actualización automática del estado cada 30 segundos
@@ -467,6 +490,89 @@ const VehiculosCliente = () => {
         <div style={headerStyle}>
           <h1 style={titleStyle}>Menú Vehículos</h1>
         </div>
+
+        {/* Notificación de Mantenimientos Próximos */}
+        {mantenimientosProximos && mantenimientosProximos.length > 0 && (
+          <div style={{
+            backgroundColor: "#fef3c7",
+            border: "2px solid #fbbf24",
+            borderLeft: "6px solid #f59e0b",
+            borderRadius: "0.5rem",
+            padding: "1.5rem",
+            marginBottom: "1.5rem",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              marginBottom: "1rem"
+            }}>
+              <span style={{ fontSize: "2rem" }}>🔔</span>
+              <h3 style={{
+                fontSize: "1.25rem",
+                fontWeight: "600",
+                color: "#92400e",
+                margin: 0
+              }}>
+                Recordatorio de Mantenimiento
+              </h3>
+            </div>
+            <p style={{
+              fontSize: "1rem",
+              color: "#78350f",
+              marginBottom: "1rem"
+            }}>
+              Tienes {mantenimientosProximos.length} {mantenimientosProximos.length === 1 ? 'vehículo' : 'vehículos'} con mantenimiento programado para hoy o mañana:
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {mantenimientosProximos.map((mant) => {
+                const fecha = new Date(mant.fecha_proximo_mantenimiento);
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const fechaMant = new Date(fecha);
+                fechaMant.setHours(0, 0, 0, 0);
+                const esHoy = fechaMant.getTime() === hoy.getTime();
+                
+                return (
+                  <div key={mant.id} style={{
+                    backgroundColor: "white",
+                    padding: "1rem",
+                    borderRadius: "0.375rem",
+                    border: "1px solid #fbbf24"
+                  }}>
+                    <div style={{
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      color: "#92400e",
+                      marginBottom: "0.5rem"
+                    }}>
+                      {esHoy ? "⏰ Hoy" : "📅 Mañana"} - {mant.marca} {mant.modelo} ({mant.placa})
+                    </div>
+                    <div style={{
+                      fontSize: "0.875rem",
+                      color: "#78350f"
+                    }}>
+                      <strong>Reparación #{mant.id}:</strong> {mant.tipo_reparacion}
+                    </div>
+                    <div style={{
+                      fontSize: "0.875rem",
+                      color: "#78350f",
+                      marginTop: "0.25rem"
+                    }}>
+                      <strong>Fecha programada:</strong> {fecha.toLocaleDateString('es-ES', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* HU14: barra de búsqueda + filtros por marca */}
         {vehiculosData.length > 0 && (
