@@ -143,6 +143,8 @@ const DashboardCliente = () => {
       navigate("/vehiculos-cliente")
     } else if (menu === "facturas") {
       navigate("/facturas-cliente")
+    } else if (menu === "cotizaciones") {
+      navigate("/cotizaciones-cliente")
     } else {
       setActiveMenu(menu)
     }
@@ -424,6 +426,13 @@ const DashboardCliente = () => {
             onClick={() => handleMenuClick("vehiculos")}
           >
             Menu vehículos
+          </div>
+
+          <div
+            style={activeMenu === "cotizaciones" ? activeMenuItemStyle : menuItemStyle}
+            onClick={() => handleMenuClick("cotizaciones")}
+          >
+            Cotizaciones
           </div>
 
           <div
