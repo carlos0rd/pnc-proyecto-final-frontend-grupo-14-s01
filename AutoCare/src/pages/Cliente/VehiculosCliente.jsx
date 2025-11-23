@@ -8,8 +8,38 @@ const VehiculosCliente = () => {
   const [userData, setUserData] = useState(null)
   const navigate = useNavigate()
 
-  // Datos de vehículos quemados para el ejemplo
+  // Datos de vehículos
   const [vehiculosData, setVehiculosData] = useState([]);
+  // Reparaciones activas por vehículo (vehiculoId -> array de reparaciones)
+  const [reparacionesActivas, setReparacionesActivas] = useState({});
+
+  // Función para obtener reparaciones activas de un vehículo
+  const fetchReparacionesActivas = async (vehiculoId, token) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${vehiculoId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      if (!response.ok) return;
+      
+      const reparaciones = await response.json();
+      
+      // Filtrar solo las que no estan finalizadas
+      const activas = reparaciones.filter(
+        (rep) => rep.status && rep.status.toLowerCase() !== "finalizado"
+      );
+      
+      setReparacionesActivas((prev) => ({
+        ...prev,
+        [vehiculoId]: activas,
+      }));
+    } catch (err) {
+      console.error(`Error al obtener reparaciones del vehículo ${vehiculoId}:`, err);
+    }
+  };
 
 useEffect(() => {
   const isAuthenticated = localStorage.getItem("isAuthenticated");
@@ -35,14 +65,42 @@ useEffect(() => {
       return res.json();
     })
    .then((data) => {
-   // ajusta al formato que realmente necesites
-   const lista = Array.isArray(data) ? data                // ← el backend devuelve un array
-               : Array.isArray(data.data) ? data.data      // ← backend devuelve { data:[…] }
-               : [];                                       // ← cualquier otro caso
+   const lista = Array.isArray(data) ? data               
+               : Array.isArray(data.data) ? data.data     
+               : [];                                      
    setVehiculosData(lista);
+   
+   // Obtener reparaciones activas para cada vehículo
+   lista.forEach((vehiculo) => {
+     fetchReparacionesActivas(vehiculo.id, token);
+   });
  })
     .catch((err) => console.error(err));
 }, [navigate]);
+
+  // Actualización automática del estado cada 30 segundos
+  useEffect(() => {
+    if (vehiculosData.length === 0) return;
+    
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    // Función para actualizar todas las reparaciones
+    const actualizarReparaciones = () => {
+      vehiculosData.forEach((vehiculo) => {
+        fetchReparacionesActivas(vehiculo.id, token);
+      });
+    };
+
+    // Actualizar inmediatamente
+    actualizarReparaciones();
+
+    // Configurar intervalo para actualización automática cada 30 segundos
+    const intervalId = setInterval(actualizarReparaciones, 30000);
+
+    // Limpiar intervalo al desmontar
+    return () => clearInterval(intervalId);
+  }, [vehiculosData]);
 
   useEffect(() => {
     // Verificar si el usuario está autenticado
@@ -179,6 +237,12 @@ useEffect(() => {
     padding: "1.5rem",
     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
     display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
+  }
+
+  const vehiculoCardHeaderStyle = {
+    display: "flex",
     alignItems: "center",
     gap: "2rem",
   }
@@ -205,6 +269,71 @@ useEffect(() => {
     fontSize: "1rem",
     color: "#6b7280",
     margin: "0.25rem 0",
+  }
+
+  const estadoReparacionContainerStyle = {
+    marginTop: "1rem",
+    padding: "1rem",
+    backgroundColor: "#f9fafb",
+    borderRadius: "0.5rem",
+    border: "1px solid #e5e7eb",
+  }
+
+  const estadoReparacionTitleStyle = {
+    fontSize: "0.875rem",
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: "0.5rem",
+  }
+
+  const estadoReparacionItemStyle = {
+    fontSize: "0.875rem",
+    color: "#6b7280",
+    margin: "0.25rem 0",
+    padding: "0.5rem",
+    backgroundColor: "white",
+    borderRadius: "0.375rem",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  }
+
+  const getStatusBadgeStyle = (status) => {
+    const statusLower = status?.toLowerCase() || "";
+    let backgroundColor = "#e5e7eb";
+    let color = "#374151";
+
+    if (statusLower.includes("recibido")) {
+      backgroundColor = "#dbeafe";
+      color = "#1e40af";
+    } else if (statusLower.includes("diagnóstico") || statusLower.includes("diagnostico")) {
+      backgroundColor = "#fef3c7";
+      color = "#92400e";
+    } else if (statusLower.includes("cotizado")) {
+      backgroundColor = "#fce7f3";
+      color = "#9f1239";
+    } else if (statusLower.includes("aprobado")) {
+      backgroundColor = "#d1fae5";
+      color = "#065f46";
+    } else if (statusLower.includes("reparación") || statusLower.includes("reparacion")) {
+      backgroundColor = "#dbeafe";
+      color = "#1e40af";
+    } else if (statusLower.includes("listo")) {
+      backgroundColor = "#d1fae5";
+      color = "#065f46";
+    } else if (statusLower.includes("entregado")) {
+      backgroundColor = "#d1fae5";
+      color = "#065f46";
+    }
+
+    return {
+      padding: "0.25rem 0.75rem",
+      borderRadius: "9999px",
+      fontSize: "0.75rem",
+      fontWeight: "600",
+      backgroundColor,
+      color,
+    };
   }
 
   const vehiculoActionsStyle = {
@@ -324,29 +453,75 @@ useEffect(() => {
 
         {/* Lista de Vehículos */}
         <div style={vehiculosContainerStyle}>
-          {vehiculosData.map((vehiculo) => (
-            <div key={vehiculo.id} style={vehiculoCardStyle}>
-              <img
-                src={vehiculo.imagen? `${import.meta.env.VITE_API_URL}${vehiculo.imagen}`: "/placeholder.svg"}
-                alt={`${vehiculo.marca} ${vehiculo.modelo}`}
-                style={vehiculoImageStyle}
-              />
+          {vehiculosData.map((vehiculo) => {
+            const reparacionesDelVehiculo = reparacionesActivas[vehiculo.id] || [];
+            const tieneReparacionesActivas = reparacionesDelVehiculo.length > 0;
+            
+            return (
+              <div key={vehiculo.id} style={vehiculoCardStyle}>
+                {/* Header del vehículo */}
+                <div style={vehiculoCardHeaderStyle}>
+                  <img
+                    src={vehiculo.imagen? `${import.meta.env.VITE_API_URL}${vehiculo.imagen}`: "/placeholder.svg"}
+                    alt={`${vehiculo.marca} ${vehiculo.modelo}`}
+                    style={vehiculoImageStyle}
+                  />
 
-              <div style={vehiculoInfoStyle}>
-                <h3 style={vehiculoNombreStyle}>
-                  {vehiculo.marca} {vehiculo.modelo}
-                </h3>
-                <p style={vehiculoDetalleStyle}>Placa: {vehiculo.placa}</p>
-                <p style={vehiculoDetalleStyle}>Mecánico: {vehiculo.mecanico}</p>
-              </div>
+                  <div style={vehiculoInfoStyle}>
+                    <h3 style={vehiculoNombreStyle}>
+                      {vehiculo.marca} {vehiculo.modelo}
+                    </h3>
+                    <p style={vehiculoDetalleStyle}>Placa: {vehiculo.placa}</p>
+                    <p style={vehiculoDetalleStyle}>Mecánico: {vehiculo.mecanico || "No asignado"}</p>
+                  </div>
 
-              <div style={vehiculoActionsStyle}>
-                <div style={visualizarLinkStyle} onClick={() => handleVerReparaciones(vehiculo.id)}>
-                  visualizar reparaciones
+                  <div style={vehiculoActionsStyle}>
+                    <div style={visualizarLinkStyle} onClick={() => handleVerReparaciones(vehiculo.id)}>
+                      visualizar reparaciones
+                    </div>
+                  </div>
                 </div>
+
+                {/* Estado de reparaciones activas */}
+                {tieneReparacionesActivas ? (
+                  <div style={estadoReparacionContainerStyle}>
+                    <div style={estadoReparacionTitleStyle}>
+                      📋 Estado Actual de Reparaciones:
+                    </div>
+                    {reparacionesDelVehiculo.map((rep) => (
+                      <div key={rep.id} style={estadoReparacionItemStyle}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: "600", color: "#374151", marginBottom: "0.25rem" }}>
+                            Reparación #{rep.id} - {rep.tipo_reparacion || "Sin tipo"}
+                          </div>
+                          {rep.descripcion && (
+                            <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.25rem" }}>
+                              {rep.descripcion}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ marginLeft: "1rem" }}>
+                          <span style={getStatusBadgeStyle(rep.status)}>
+                            {rep.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{
+                    ...estadoReparacionContainerStyle,
+                    backgroundColor: "#f0fdf4",
+                    borderColor: "#bbf7d0",
+                  }}>
+                    <div style={{ fontSize: "0.875rem", color: "#166534", textAlign: "center" }}>
+                      ✅ No hay reparaciones activas en este momento
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

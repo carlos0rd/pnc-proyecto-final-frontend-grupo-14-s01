@@ -12,7 +12,6 @@ const ReparacionesCliente = () => {
   const [reparaciones, setReparaciones] = useState([]);
   const [processingId, setProcessingId] = useState(null); // cuál se está procesando
 
-  // 👉 estado para el popup bonito
   const [popup, setPopup] = useState({
     visible: false,
     message: "",
@@ -29,7 +28,7 @@ const ReparacionesCliente = () => {
     }
     setUserData(JSON.parse(currentUser));
 
-    /* 1. Traer info del vehículo ---------------------------------- */
+    /*Obtener info del vehículo*/
     fetch(`${import.meta.env.VITE_API_URL}/vehiculos/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -40,7 +39,7 @@ const ReparacionesCliente = () => {
       .then((vehiculo) => setVehiculoData(vehiculo))
       .catch(() => navigate("/vehiculos-cliente"));
 
-    /* 2. Traer reparaciones del vehículo --------------------------- */
+    /*Obtener reparaciones del vehículo*/
     fetch(`${import.meta.env.VITE_API_URL}/reparaciones/vehiculo/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -49,7 +48,7 @@ const ReparacionesCliente = () => {
       .catch((err) => console.error(err));
   }, [id, navigate]);
 
-  // ---------- estilos generales ----------
+  // Estilos generales
   const containerStyle = {
     display: "flex",
     minHeight: "100vh",
@@ -225,7 +224,7 @@ const ReparacionesCliente = () => {
     color: "#374151",
   };
 
-  // estilos para botones de aprobar / rechazar cotización
+  // Estilos para botones de aprobar / rechazar cotización
   const decisionButtonsContainerStyle = {
     display: "flex",
     gap: "0.75rem",
@@ -249,7 +248,7 @@ const ReparacionesCliente = () => {
     backgroundColor: "#DC2626",
   };
 
-  // ---------- estilos del POPUP ----------
+  // Estilos del POPUP
   const popupContainerStyle = {
     position: "fixed",
     top: "1.5rem",
@@ -259,7 +258,7 @@ const ReparacionesCliente = () => {
   };
 
   const getPopupBoxStyle = (type) => {
-    let borderColor = "#3B82F6"; // info
+    let borderColor = "#3B82F6"; // Tipo de mensaje
     if (type === "success") borderColor = "#10B981";
     if (type === "error") borderColor = "#DC2626";
 
@@ -324,7 +323,7 @@ const ReparacionesCliente = () => {
     navigate(`/servicios-cliente/${id}/${reparacionId}`)
   }
 
-  // 💡 HU3: función para aprobar / rechazar la cotización
+  // función para aprobar / rechazar la cotización
   const handleDecisionCotizacion = async (reparacionId, decision) => {
     const token = localStorage.getItem("token");
 
