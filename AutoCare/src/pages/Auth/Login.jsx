@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import LoginImage from "../../assets/login-img.png"
 import { jwtDecode } from "jwt-decode";
+import { API_URL } from "../../config/api";
 
 
 const Login = () => {
@@ -21,7 +22,7 @@ const Login = () => {
     setLoading(true);
   
     try {
-      const loginRes = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+      const loginRes = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, contrasena: password })
@@ -37,7 +38,7 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("isAuthenticated", "true");
   
-      const meRes = await fetch(`${import.meta.env.VITE_API_URL}/usuarios/me`, {
+      const meRes = await fetch(`${API_URL}/usuarios/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!meRes.ok) throw new Error("No se pudo obtener el perfil");

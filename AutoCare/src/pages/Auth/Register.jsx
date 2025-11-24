@@ -4,6 +4,7 @@ import { useState } from "react"
 import RegImage from "../../assets/register-img.png"
 import { useNavigate } from "react-router-dom"
 import { ok, warn, error as errorSwal } from "../../utils/alerts"
+import { API_URL } from "../../config/api"
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -36,7 +37,7 @@ const handleSubmit = async (e) => {
   };
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+    const response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
